@@ -1,0 +1,281 @@
+openapi: 3.1.0
+
+info:
+  title: Approval API
+  version: 1.0.0
+  description: >
+    Evaluates payment-plan proposals for past-due loans.
+    Production access is protected by Cloudflare Access.
+  license:
+    name: Proprietary
+    identifier: LicenseRef-Proprietary
+
+servers:
+  - url: https://approval-api.aeqira.workers.dev
+    description: Protected production Worker
+
+security:
+  - cloudflareAccessCookie: []
+
+tags:
+  - name: Health
+    description: API availability and health information.
+  - name: Approvals
+    description: Payment-plan calculation and decision operations.
+
+paths:
+  /:
+    get:
+      tags:
+        - Health
+      summary: Check API health
+      operationId: getHealth
+      responses:
+        '200':
+          description: The API is running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '403':
+          description: Access denied by Cloudflare Access
+
+  /api/approval:
+    post:
+      tags:
+        - Approvals
+      summary: Evaluate a payment-plan proposal
+      operationId: evaluateApproval
+      description: >
+        Calculates the proposed plan and returns approved,
+        denied, or manager_review. Hard-denial conditions
+        take precedence over manager-review conditions.
+      security:
+        - cloudflareAccessCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApprovalRequest'
+            examples:
+              minimumPlusExtra:
+                summary: Minimum payment plus extra
+                value:
+                  pastDueBalance: 650
+                  monthlyPayment: 300
+                  daysPastDue: 20
+                  regularDefermentCount: 1
+                  paymentChoice:
+                    type: minimum_plus_extra
+                    extraAmount: 100
+              affordablePayment:
+                summary: Affordable total payment
+                value:
+                  pastDueBalance: 650
+                  monthlyPayment: 300
+                  daysPastDue: 20
+                  regularDefermentCount: 1
+                  paymentChoice:
+                    type: affordable_payment
+                    affordablePayment: 400
+      responses:
+        '200':
+          description: Payment-plan decision
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApprovalResponse'
+              examples:
+                approved:
+                  summary: Approved plan
+                  value:
+                    status: approved
+                    planPayment: 400
+                    catchUpAmount: 100
+                    numberOfPayments: 7
+                    finalPayment: 350
+                    regularDefermentAvailable: true
+                    reasons:
+                      - All automatic approval criteria were met.
+                managerReview:
+                  summary: Manager review required
+                  value:
+                    status: manager_review
+                    planPayment: 400
+                    catchUpAmount: 100
+                    numberOfPayments: 13
+                    finalPayment: 400
+                    regularDefermentAvailable: false
+                    reasons:
+                      - The plan requires between 13 and 18 payments.
+                denied:
+                  summary: Denied plan
+                  value:
+                    status: denied
+                    planPayment: 350
+                    catchUpAmount: 50
+                    numberOfPayments: 20
+                    finalPayment: 350
+                    regularDefermentAvailable: true
+                    reasons:
+                      - The plan requires more than 18 payments.
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    cloudflareAccessCookie:
+      type: apiKey
+      in: cookie
+      name: CF_Authorization
+      description: >
+        Cloudflare Access session cookie supplied after the
+        user signs in through the browser.
+
+  schemas:
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - status
+      properties:
+        name:
+          type: string
+          examples:
+            - Approval API
+        status:
+          type: string
+          const: running
+
+    ApprovalRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - pastDueBalance
+        - monthlyPayment
+        - daysPastDue
+        - regularDefermentCount
+        - paymentChoice
+      properties:
+        pastDueBalance:
+          type: number
+          exclusiveMinimum: 0
+          description: Total past-due balance.
+          examples:
+            - 650
+        monthlyPayment:
+          type: number
+          exclusiveMinimum: 0
+          description: Current regular monthly payment.
+          examples:
+            - 300
+        daysPastDue:
+          type: integer
+          minimum: 0
+          description: Number of days the loan is past due.
+          examples:
+            - 20
+        regularDefermentCount:
+          type: integer
+          minimum: 0
+          description: Lifetime number of regular deferments used.
+          examples:
+            - 1
+        paymentChoice:
+          oneOf:
+            - $ref: '#/components/schemas/MinimumPlusExtra'
+            - $ref: '#/components/schemas/AffordablePayment'
+          discriminator:
+            propertyName: type
+            mapping:
+              minimum_plus_extra: '#/components/schemas/MinimumPlusExtra'
+              affordable_payment: '#/components/schemas/AffordablePayment'
+
+    MinimumPlusExtra:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - extraAmount
+      properties:
+        type:
+          type: string
+          const: minimum_plus_extra
+        extraAmount:
+          type: number
+          exclusiveMinimum: 0
+          description: Amount paid above the regular monthly payment.
+
+    AffordablePayment:
+      type: object
+      additionalProperties: false
+      required:
+        - type
+        - affordablePayment
+      properties:
+        type:
+          type: string
+          const: affordable_payment
+        affordablePayment:
+          type: number
+          exclusiveMinimum: 0
+          description: Total monthly amount the customer can afford.
+
+    ApprovalResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - planPayment
+        - catchUpAmount
+        - numberOfPayments
+        - finalPayment
+        - regularDefermentAvailable
+        - reasons
+      properties:
+        status:
+          type: string
+          enum:
+            - approved
+            - denied
+            - manager_review
+        planPayment:
+          type: number
+          minimum: 0
+        catchUpAmount:
+          type: number
+          minimum: 0
+        numberOfPayments:
+          type: integer
+          minimum: 0
+        finalPayment:
+          type: number
+          minimum: 0
+        regularDefermentAvailable:
+          type: boolean
+          description: >
+            True when fewer than two regular deferments have
+            previously been used.
+        reasons:
+          type: array
+          minItems: 1
+          items:
+            type: string
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+        requiredFields:
+          type: array
+          items:
+            type: string
