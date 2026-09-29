@@ -1,29 +1,72 @@
+export type AppView = "new-review" | "manager-queue";
+
 export type PaymentChoice =
 	| {
-			type: 'minimum_plus_extra';
+			type: "minimum_plus_extra";
 			extraAmount: number;
 	  }
 	| {
-			type: 'affordable_payment';
+			type: "affordable_payment";
 			affordablePayment: number;
 	  };
 
 export interface ApprovalRequest {
+	memberNumber: string;
+	pastDueDate: string;
 	pastDueBalance: number;
 	monthlyPayment: number;
-	daysPastDue: number;
 	regularDefermentCount: number;
 	paymentChoice: PaymentChoice;
 }
 
-export type ApprovalStatus = 'approved' | 'denied' | 'manager_review';
+export type ApprovalStatus = "approved" | "denied" | "manager_review";
 
-export interface ApprovalResponse {
+export interface ApprovalDecision {
 	status: ApprovalStatus;
+	daysPastDue: number;
 	planPayment: number;
 	catchUpAmount: number;
 	numberOfPayments: number;
 	finalPayment: number;
 	regularDefermentAvailable: boolean;
 	reasons: string[];
+	accountComment: string;
+}
+
+export interface ApprovalResponse extends ApprovalDecision {
+	reviewId: string;
+}
+
+export interface ManagerReview {
+	reviewId: string;
+	memberNumber: string;
+	associateEmail: string;
+	pastDueDate: string;
+	daysPastDue: number;
+	pastDueBalance: number;
+	monthlyPayment: number;
+	planPayment: number;
+	numberOfPayments: number;
+	regularDefermentAvailable: boolean;
+	reasons: string[];
+	createdAt: string;
+}
+
+export interface ManagerReviewsResponse {
+	reviews: ManagerReview[];
+}
+
+export type ManagerDecisionStatus = "approved" | "denied";
+
+export interface ManagerDecisionRequest {
+	status: ManagerDecisionStatus;
+	reason: string;
+}
+
+export interface ManagerDecisionResponse {
+	reviewId: string;
+	status: ManagerDecisionStatus;
+	managerEmail: string;
+	managerReason: string;
+	reviewedAt: string;
 }

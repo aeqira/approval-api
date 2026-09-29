@@ -1,16 +1,13 @@
-import { isApprovalRequest } from '../schemas/approval';
-import { evaluateApproval } from '../services/approval';
+import { isApprovalRequest } from "../schemas/approval";
+import { evaluateApproval } from "../services/approval";
+import { jsonNoStore } from "../functions/helpers";
+import { saveApprovalReview } from "../services/review-storage";
 
-function jsonNoStore(body: unknown, status: number = 200): Response {
-	return Response.json(body, {
-		status,
-		headers: {
-			'Cache-Control': 'no-store',
-		},
-	});
-}
-
-export async function handleApproval(request: Request): Promise<Response> {
+export async function handleApproval(
+	request: Request,
+	database: D1Database,
+	associateEmail: string,
+): Promise<Response> {
 	let body: unknown;
 
 	try {
@@ -18,7 +15,7 @@ export async function handleApproval(request: Request): Promise<Response> {
 	} catch {
 		return jsonNoStore(
 			{
-				error: 'Request body must be valid JSON',
+				error: "Request body must contain valid JSON",
 			},
 			400,
 		);
@@ -27,12 +24,46 @@ export async function handleApproval(request: Request): Promise<Response> {
 	if (!isApprovalRequest(body)) {
 		return jsonNoStore(
 			{
-				error: 'Invalid approval request',
-				requiredFields: ['pastDueBalance', 'monthlyPayment', 'daysPastDue', 'regularDefermentCount', 'paymentChoice'],
+				error: "Invalid approval request",
+				requiredFields: [
+					"memberNumber",
+					"pastDueDate",
+					"pastDueBalance",
+					"monthlyPayment",
+					"regularDefermentCount",
+					"paymentChoice",
+				],
 			},
 			400,
 		);
 	}
 
-	return jsonNoStore(evaluateApproval(body));
+	const decision = evaluateApproval(body);
+
+	try {
+		const reviewId = await saveApprovalReview(database, {
+			associateEmail,
+			request: body,
+			decision,
+		});
+
+		return jsonNoStore({
+			...decision,
+			reviewId,
+		});
+	} catch (error) {
+		console.error(
+			JSON.stringify({
+				message: "Failed to save approval review",
+				error: error instanceof Error ? error.message : String(error),
+			}),
+		);
+	}
+
+	return jsonNoStore(
+		{
+			error: "Unable to save approval review",
+		},
+		500,
+	);
 }

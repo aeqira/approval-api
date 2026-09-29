@@ -1,16 +1,10 @@
-import type { ApprovalRequest, ApprovalResponse, ApprovalStatus } from '../types/approval';
+import { calculateDaysPastDue, toCents, toDollars } from '../functions/helpers';
+import type { ApprovalDecision, ApprovalRequest, ApprovalStatus } from '../types/approval';
 
-function toCents(amount: number): number {
-	return Math.round(amount * 100);
-}
-
-function toDollars(cents: number): number {
-	return cents / 100;
-}
-
-export function evaluateApproval(request: ApprovalRequest): ApprovalResponse {
+export function evaluateApproval(request: ApprovalRequest): ApprovalDecision {
 	const pastDueBalance = toCents(request.pastDueBalance);
 	const monthlyPayment = toCents(request.monthlyPayment);
+	const daysPastDue = calculateDaysPastDue(request.pastDueDate);
 
 	const planPayment =
 		request.paymentChoice.type === 'minimum_plus_extra'
@@ -27,9 +21,9 @@ export function evaluateApproval(request: ApprovalRequest): ApprovalResponse {
 
 	const numberOfPayments = catchUpAmount > 0 ? Math.ceil(pastDueBalance / catchUpAmount) : 0;
 
-	if (request.daysPastDue >= 90) {
+	if (daysPastDue >= 90) {
 		denialReasons.push('The loan is 90 or more days past due.');
-	} else if (request.daysPastDue >= 31) {
+	} else if (daysPastDue >= 31) {
 		reviewReasons.push('The loan is between 31 and 89 days past due.');
 	}
 
@@ -55,13 +49,31 @@ export function evaluateApproval(request: ApprovalRequest): ApprovalResponse {
 
 	const finalCatchUpAmount = numberOfPayments > 0 ? pastDueBalance - catchUpAmount * (numberOfPayments - 1) : 0;
 
+	const finalPayment = monthlyPayment + Math.max(finalCatchUpAmount, 0);
+	const regularDefermentAvailable = request.regularDefermentCount < 2;
+	const statusLabel = status === 'manager_review' ? 'MANAGER REVIEW' : status.toUpperCase();
+
+	const accountComment = [
+		`Payment plan decision: ${statusLabel}.`,
+		`Member number: ${request.memberNumber}.`,
+		`Past due date: ${request.pastDueDate}.`,
+		`Days past due: ${daysPastDue}.`,
+		`Plan payment: ${toDollars(planPayment).toFixed(2)}.`,
+		`Number of payments: ${numberOfPayments}.`,
+		`Final payment: ${toDollars(finalPayment).toFixed(2)}.`,
+		`Regular deferment: ${regularDefermentAvailable ? 'available' : 'not available'}.`,
+		`Reason: ${reasons.join(' ')}`,
+	].join(' ');
+
 	return {
 		status,
+		daysPastDue,
 		planPayment: toDollars(planPayment),
 		catchUpAmount: toDollars(Math.max(catchUpAmount, 0)),
 		numberOfPayments,
-		finalPayment: toDollars(monthlyPayment + Math.max(finalCatchUpAmount, 0)),
-		regularDefermentAvailable: request.regularDefermentCount < 2,
+		finalPayment: toDollars(finalPayment),
+		regularDefermentAvailable,
 		reasons,
+		accountComment,
 	};
 }

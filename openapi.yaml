@@ -2,9 +2,10 @@ openapi: 3.1.0
 
 info:
   title: Approval API
-  version: 1.0.0
+  version: 1.1.0
   description: >
     Evaluates payment-plan proposals for past-due loans.
+    Days past due are calculated from the supplied past-due date.
     Production access is protected by Cloudflare Access.
   license:
     name: Proprietary
@@ -24,47 +25,69 @@ tags:
     description: Payment-plan calculation and decision operations.
 
 paths:
-  /:
+  /api/v1/health:
     get:
       tags:
         - Health
       summary: Check API health
       operationId: getHealth
       responses:
-        '200':
+        "200":
           description: The API is running
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HealthResponse'
-        '403':
+                $ref: "#/components/schemas/HealthResponse"
+        "403":
           description: Access denied by Cloudflare Access
 
-  /api/approval:
+  /api/v1/identity:
+    get:
+      tags:
+        - Approvals
+      summary: Get the authenticated associate identity
+      operationId: getIdentity
+      responses:
+        "200":
+          description: Authenticated associate identity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IdentityResponse"
+        "401":
+          description: An authenticated associate identity was not available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Access denied by Cloudflare Access
+
+  /api/v1/approval:
     post:
       tags:
         - Approvals
       summary: Evaluate a payment-plan proposal
       operationId: evaluateApproval
       description: >
-        Calculates the proposed plan and returns approved,
-        denied, or manager_review. Hard-denial conditions
-        take precedence over manager-review conditions.
-      security:
-        - cloudflareAccessCookie: []
+        Calculates days past due and the proposed payment plan,
+        saves the resulting review, and returns approved, denied,
+        or manager_review. Hard-denial conditions take precedence
+        over manager-review conditions.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ApprovalRequest'
+              $ref: "#/components/schemas/ApprovalRequest"
             examples:
               minimumPlusExtra:
                 summary: Minimum payment plus extra
                 value:
+                  memberNumber: "123456"
+                  pastDueDate: "2026-09-09"
                   pastDueBalance: 650
                   monthlyPayment: 300
-                  daysPastDue: 20
                   regularDefermentCount: 1
                   paymentChoice:
                     type: minimum_plus_extra
@@ -72,25 +95,28 @@ paths:
               affordablePayment:
                 summary: Affordable total payment
                 value:
+                  memberNumber: "123456"
+                  pastDueDate: "2026-09-09"
                   pastDueBalance: 650
                   monthlyPayment: 300
-                  daysPastDue: 20
                   regularDefermentCount: 1
                   paymentChoice:
                     type: affordable_payment
                     affordablePayment: 400
       responses:
-        '200':
-          description: Payment-plan decision
+        "200":
+          description: Payment-plan decision saved successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApprovalResponse'
+                $ref: "#/components/schemas/ApprovalResponse"
               examples:
                 approved:
                   summary: Approved plan
                   value:
+                    reviewId: "72b708ee-957b-466f-9cd6-fd3e09aca998"
                     status: approved
+                    daysPastDue: 20
                     planPayment: 400
                     catchUpAmount: 100
                     numberOfPayments: 7
@@ -98,34 +124,217 @@ paths:
                     regularDefermentAvailable: true
                     reasons:
                       - All automatic approval criteria were met.
+                    accountComment: >
+                      Payment plan decision: APPROVED. Member number:
+                      123456. Past due date: 2026-09-09. Days past due:
+                      20. Plan payment: 400.00. Number of payments: 7.
+                      Final payment: 350.00. Regular deferment:
+                      available. Reason: All automatic approval
+                      criteria were met.
                 managerReview:
                   summary: Manager review required
                   value:
+                    reviewId: "f60570be-804b-4b80-8aac-3c2f10a2b676"
                     status: manager_review
+                    daysPastDue: 45
                     planPayment: 400
                     catchUpAmount: 100
                     numberOfPayments: 13
                     finalPayment: 400
                     regularDefermentAvailable: false
                     reasons:
+                      - The loan is between 31 and 89 days past due.
                       - The plan requires between 13 and 18 payments.
+                    accountComment: >
+                      Payment plan decision: MANAGER REVIEW. Member
+                      number: 123456. Past due date: 2026-08-15.
+                      Days past due: 45. Plan payment: 400.00.
+                      Number of payments: 13. Final payment: 400.00.
+                      Regular deferment: not available. Reason: The
+                      loan is between 31 and 89 days past due. The
+                      plan requires between 13 and 18 payments.
                 denied:
                   summary: Denied plan
                   value:
+                    reviewId: "20dcd597-40e4-4d73-8a44-f0f3249d2719"
                     status: denied
+                    daysPastDue: 90
                     planPayment: 350
                     catchUpAmount: 50
                     numberOfPayments: 20
                     finalPayment: 350
                     regularDefermentAvailable: true
                     reasons:
+                      - The loan is 90 or more days past due.
                       - The plan requires more than 18 payments.
-        '400':
+                    accountComment: >
+                      Payment plan decision: DENIED. Member number:
+                      123456. Past due date: 2026-07-01. Days past
+                      due: 90. Plan payment: 350.00. Number of
+                      payments: 20. Final payment: 350.00. Regular
+                      deferment: available. Reason: The loan is 90
+                      or more days past due. The plan requires more
+                      than 18 payments.
+        "400":
           description: Invalid request
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: An authenticated associate identity was not available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Access denied by Cloudflare Access
+        "405":
+          description: Method not allowed
+          headers:
+            Allow:
+              schema:
+                type: string
+                const: POST
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: The approval review could not be saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/manager/reviews:
+    get:
+      tags:
+        - Approvals
+      summary: List pending manager reviews
+      operationId: listManagerReviews
+      description: >
+        Returns up to 100 pending payment plans in oldest-first
+        order. The authenticated user must be an active manager.
+      responses:
+        "200":
+          description: Pending manager reviews
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManagerReviewsResponse"
+        "401":
+          description: An authenticated identity was not available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The authenticated user is not an active manager
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "405":
+          description: Method not allowed
+          headers:
+            Allow:
+              schema:
+                type: string
+                const: GET
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Manager reviews could not be loaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/manager/reviews/{reviewId}:
+    patch:
+      tags:
+        - Approvals
+      summary: Resolve a pending manager review
+      operationId: resolveManagerReview
+      description: >
+        Approves or denies a pending manager review while
+        preserving the API's original decision.
+      parameters:
+        - name: reviewId
+          in: path
+          required: true
+          description: Unique review identifier.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ManagerDecisionRequest"
+            examples:
+              approve:
+                summary: Approve a pending review
+                value:
+                  status: approved
+                  reason: Payment history supports approval.
+              deny:
+                summary: Deny a pending review
+                value:
+                  status: denied
+                  reason: The proposed arrangement is not supportable.
+      responses:
+        "200":
+          description: Manager decision saved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManagerDecisionResponse"
+        "400":
+          description: Invalid review ID, JSON, or decision request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: An authenticated identity was not available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The authenticated user is not an active manager
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Pending manager review not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "405":
+          description: Method not allowed
+          headers:
+            Allow:
+              schema:
+                type: string
+                const: PATCH
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Manager decision could not be saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
 components:
   securitySchemes:
@@ -134,8 +343,8 @@ components:
       in: cookie
       name: CF_Authorization
       description: >
-        Cloudflare Access session cookie supplied after the
-        user signs in through the browser.
+        Cloudflare Access session cookie supplied after the user
+        signs in through the browser.
 
   schemas:
     HealthResponse:
@@ -153,16 +362,45 @@ components:
           type: string
           const: running
 
+    IdentityResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          description: Authenticated associate email address.
+          examples:
+            - associate@aeqira.com
+
     ApprovalRequest:
       type: object
       additionalProperties: false
       required:
+        - memberNumber
+        - pastDueDate
         - pastDueBalance
         - monthlyPayment
-        - daysPastDue
         - regularDefermentCount
         - paymentChoice
       properties:
+        memberNumber:
+          type: string
+          minLength: 1
+          description: Member or account identifier.
+          examples:
+            - "123456"
+        pastDueDate:
+          type: string
+          format: date
+          description: >
+            Date of the oldest unpaid payment. The date must be
+            today or earlier. Days past due are calculated from
+            this value using UTC calendar dates.
+          examples:
+            - "2026-09-09"
         pastDueBalance:
           type: number
           exclusiveMinimum: 0
@@ -175,12 +413,6 @@ components:
           description: Current regular monthly payment.
           examples:
             - 300
-        daysPastDue:
-          type: integer
-          minimum: 0
-          description: Number of days the loan is past due.
-          examples:
-            - 20
         regularDefermentCount:
           type: integer
           minimum: 0
@@ -189,13 +421,13 @@ components:
             - 1
         paymentChoice:
           oneOf:
-            - $ref: '#/components/schemas/MinimumPlusExtra'
-            - $ref: '#/components/schemas/AffordablePayment'
+            - $ref: "#/components/schemas/MinimumPlusExtra"
+            - $ref: "#/components/schemas/AffordablePayment"
           discriminator:
             propertyName: type
             mapping:
-              minimum_plus_extra: '#/components/schemas/MinimumPlusExtra'
-              affordable_payment: '#/components/schemas/AffordablePayment'
+              minimum_plus_extra: "#/components/schemas/MinimumPlusExtra"
+              affordable_payment: "#/components/schemas/AffordablePayment"
 
     MinimumPlusExtra:
       type: object
@@ -231,32 +463,49 @@ components:
       type: object
       additionalProperties: false
       required:
+        - reviewId
         - status
+        - daysPastDue
         - planPayment
         - catchUpAmount
         - numberOfPayments
         - finalPayment
         - regularDefermentAvailable
         - reasons
+        - accountComment
       properties:
+        reviewId:
+          type: string
+          format: uuid
+          description: Unique identifier for the saved approval review.
         status:
           type: string
           enum:
             - approved
             - denied
             - manager_review
+        daysPastDue:
+          type: integer
+          minimum: 0
+          description: >
+            Number of calendar days between the past-due date
+            and the current UTC date.
         planPayment:
           type: number
           minimum: 0
+          description: Total regular payment during the plan.
         catchUpAmount:
           type: number
           minimum: 0
+          description: Amount applied to the past-due balance.
         numberOfPayments:
           type: integer
           minimum: 0
+          description: Number of payments required by the plan.
         finalPayment:
           type: number
           minimum: 0
+          description: Final payment after applying the remaining balance.
         regularDefermentAvailable:
           type: boolean
           description: >
@@ -267,9 +516,123 @@ components:
           minItems: 1
           items:
             type: string
+          description: Reasons supporting the returned decision.
+        accountComment:
+          type: string
+          minLength: 1
+          description: Paste-ready comment for the servicing system.
+
+    ManagerReview:
+      type: object
+      additionalProperties: false
+      required:
+        - reviewId
+        - memberNumber
+        - associateEmail
+        - pastDueDate
+        - daysPastDue
+        - pastDueBalance
+        - monthlyPayment
+        - planPayment
+        - numberOfPayments
+        - regularDefermentAvailable
+        - reasons
+        - createdAt
+      properties:
+        reviewId:
+          type: string
+          format: uuid
+        memberNumber:
+          type: string
+        associateEmail:
+          type: string
+          format: email
+        pastDueDate:
+          type: string
+          format: date
+        daysPastDue:
+          type: integer
+          minimum: 0
+        pastDueBalance:
+          type: number
+          minimum: 0
+        monthlyPayment:
+          type: number
+          minimum: 0
+        planPayment:
+          type: number
+          minimum: 0
+        numberOfPayments:
+          type: integer
+          minimum: 0
+        regularDefermentAvailable:
+          type: boolean
+        reasons:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          description: D1 creation timestamp.
+
+    ManagerReviewsResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - reviews
+      properties:
+        reviews:
+          type: array
+          items:
+            $ref: "#/components/schemas/ManagerReview"
+
+    ManagerDecisionRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - reason
+      properties:
+        status:
+          type: string
+          enum:
+            - approved
+            - denied
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 1000
+
+    ManagerDecisionResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - reviewId
+        - status
+        - managerEmail
+        - managerReason
+        - reviewedAt
+      properties:
+        reviewId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+            - approved
+            - denied
+        managerEmail:
+          type: string
+          format: email
+        managerReason:
+          type: string
+        reviewedAt:
+          type: string
+          format: date-time
 
     ErrorResponse:
       type: object
+      additionalProperties: false
       required:
         - error
       properties:

@@ -36,6 +36,9 @@ jobs:
       - name: Run tests
         run: npm test -- --run
 
+      - name: Build application
+        run: npm run build
+
       - name: Check production dependencies
         run: npm audit --omit=dev
 
