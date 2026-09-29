@@ -1,7 +1,8 @@
 import { SELF } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
+import type { ApprovalResponse } from '../src/types/approval';
 
-async function getDecision(daysPastDue: number, pastDueBalance: number) {
+async function getDecision(daysPastDue: number, pastDueBalance: number): Promise<ApprovalResponse> {
 	const response = await SELF.fetch('https://example.com/api/approval', {
 		method: 'POST',
 		headers: {
@@ -19,7 +20,7 @@ async function getDecision(daysPastDue: number, pastDueBalance: number) {
 		}),
 	});
 
-	return response.json();
+	return (await response.json()) as ApprovalResponse;
 }
 
 describe('days-past-due boundaries', () => {

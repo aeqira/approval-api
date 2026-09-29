@@ -1,5 +1,6 @@
 import { SELF } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
+import type { ApprovalResponse } from '../src/types/approval';
 
 async function submitApproval(body: unknown) {
 	return SELF.fetch('https://example.com/api/approval', {
@@ -9,6 +10,10 @@ async function submitApproval(body: unknown) {
 		},
 		body: JSON.stringify(body),
 	});
+}
+
+async function readApprovalResponse(response: Response): Promise<ApprovalResponse> {
+	return (await response.json()) as ApprovalResponse;
 }
 
 describe('Approval API', () => {
@@ -24,8 +29,12 @@ describe('Approval API', () => {
 			},
 		});
 
+		expect(response.headers.get('Cache-Control')).toBe('no-store');
 		expect(response.status).toBe(200);
-		expect(await response.json()).toEqual({
+
+		const result = await readApprovalResponse(response);
+
+		expect(result).toEqual({
 			status: 'approved',
 			planPayment: 400,
 			catchUpAmount: 100,
@@ -48,7 +57,7 @@ describe('Approval API', () => {
 			},
 		});
 
-		const result = await response.json();
+		const result = await readApprovalResponse(response);
 
 		expect(result.status).toBe('manager_review');
 		expect(result.regularDefermentAvailable).toBe(false);
@@ -67,7 +76,7 @@ describe('Approval API', () => {
 			},
 		});
 
-		const result = await response.json();
+		const result = await readApprovalResponse(response);
 
 		expect(result.status).toBe('manager_review');
 		expect(result.numberOfPayments).toBe(13);
@@ -85,7 +94,7 @@ describe('Approval API', () => {
 			},
 		});
 
-		const result = await response.json();
+		const result = await readApprovalResponse(response);
 
 		expect(result.status).toBe('denied');
 		expect(result.reasons).toContain('The plan requires more than 18 payments.');
@@ -103,7 +112,7 @@ describe('Approval API', () => {
 			},
 		});
 
-		const result = await response.json();
+		const result = await readApprovalResponse(response);
 
 		expect(result.status).toBe('denied');
 		expect(result.reasons).toContain('The proposed payment must exceed the regular monthly payment.');
