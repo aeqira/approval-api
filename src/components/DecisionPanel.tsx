@@ -1,5 +1,13 @@
+import { Calculator24Regular } from "@fluentui/react-icons/svg/calculator";
+import { CalendarArrowCounterclockwise24Regular } from "@fluentui/react-icons/svg/calendar-arrow-counterclockwise";
+import { CalendarClock24Regular } from "@fluentui/react-icons/svg/calendar-clock";
 import { CheckmarkCircle24Regular } from "@fluentui/react-icons/svg/checkmark-circle";
 import { Clipboard24Regular } from "@fluentui/react-icons/svg/clipboard";
+import { DocumentBulletList24Regular } from "@fluentui/react-icons/svg/document-bullet-list";
+import { Info24Regular } from "@fluentui/react-icons/svg/info";
+import { Money24Regular } from "@fluentui/react-icons/svg/money";
+import { NumberSymbol24Regular } from "@fluentui/react-icons/svg/number-symbol";
+import { Payment24Regular } from "@fluentui/react-icons/svg/payment";
 import {
 	copyTextToClipboard,
 	formatCurrency,
@@ -27,7 +35,10 @@ export function DecisionPanel({
 	return (
 		<section className="workspace-panel result-panel">
 			<div className="panel-heading">
-				<h2>Payment Plan Result</h2>
+				<h2 className="heading-with-icon">
+					<Calculator24Regular aria-hidden="true" />
+					Payment Plan Result
+				</h2>
 			</div>
 
 			{isSubmitting && calculationValues && (
@@ -56,7 +67,10 @@ export function DecisionPanel({
 					</p>
 
 					<div className="result-includes">
-						<h4>The result will include:</h4>
+						<h4 className="heading-with-icon">
+							<Info24Regular aria-hidden="true" />
+							The result will include:
+						</h4>
 						<ul>
 							<li>Decision and decision reasons</li>
 							<li>Payment amount and term</li>
@@ -79,32 +93,50 @@ export function DecisionPanel({
 
 					<dl className="decision-summary">
 						<div>
-							<dt>Adjusted Days Delinquent</dt>
+							<dt>
+								<CalendarClock24Regular aria-hidden="true" />
+								Adjusted Days Delinquent
+							</dt>
 							<dd>{result.adjustedDaysPastDue}</dd>
 						</div>
 
 						<div>
-							<dt>Adjusted Delinquent Balance</dt>
+							<dt>
+								<Money24Regular aria-hidden="true" />
+								Adjusted Delinquent Balance
+							</dt>
 							<dd>{formatCurrency(result.adjustedPastDueBalance)}</dd>
 						</div>
 
 						<div>
-							<dt>Plan Payment</dt>
+							<dt>
+								<Payment24Regular aria-hidden="true" />
+								Plan Payment
+							</dt>
 							<dd>{formatCurrency(result.planPayment)}</dd>
 						</div>
 
 						<div>
-							<dt>Payment Count</dt>
+							<dt>
+								<NumberSymbol24Regular aria-hidden="true" />
+								Payment Count
+							</dt>
 							<dd>{result.numberOfPayments}</dd>
 						</div>
 
 						<div>
-							<dt>Final Payment</dt>
+							<dt>
+								<Payment24Regular aria-hidden="true" />
+								Final Payment
+							</dt>
 							<dd>{formatCurrency(result.finalPayment)}</dd>
 						</div>
 
 						<div>
-							<dt>Regular Deferment</dt>
+							<dt>
+								<CalendarArrowCounterclockwise24Regular aria-hidden="true" />
+								Regular Deferment
+							</dt>
 							<dd>
 								{result.regularDefermentApplied
 									? `${result.defermentMonths} months, ${formatCurrency(result.deferredAmount)}`
@@ -114,7 +146,10 @@ export function DecisionPanel({
 					</dl>
 
 					<div className="decision-reasons">
-						<h3>Decision Reasons</h3>
+						<h3 className="heading-with-icon">
+							<DocumentBulletList24Regular aria-hidden="true" />
+							Decision Reasons
+						</h3>
 						<ul>
 							{result.reasons.map((reason) => (
 								<li key={reason}>{reason}</li>
@@ -125,7 +160,10 @@ export function DecisionPanel({
 					{result.accountComment && (
 						<div className="account-comment">
 							<div className="account-comment-heading">
-								<h3>Account Comment</h3>
+								<h3 className="heading-with-icon">
+									<Clipboard24Regular aria-hidden="true" />
+									Account Comment
+								</h3>
 
 								<button
 									className="secondary-button"

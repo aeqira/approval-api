@@ -1,6 +1,7 @@
 import { ArrowSync24Regular } from "@fluentui/react-icons/svg/arrow-sync";
 import { Calculator24Regular } from "@fluentui/react-icons/svg/calculator";
 import { CalendarArrowCounterclockwise24Regular } from "@fluentui/react-icons/svg/calendar-arrow-counterclockwise";
+import { DocumentBulletList24Regular } from "@fluentui/react-icons/svg/document-bullet-list";
 import { Eraser24Regular } from "@fluentui/react-icons/svg/eraser";
 import { ErrorCircle24Regular } from "@fluentui/react-icons/svg/error-circle";
 import { useState, type FormEvent } from "react";
@@ -91,7 +92,10 @@ export function ReviewForm({
 	return (
 		<section className="workspace-panel">
 			<div className="panel-heading">
-				<h2>Loan Information</h2>
+				<h2 className="heading-with-icon">
+					<DocumentBulletList24Regular aria-hidden="true" />
+					Loan Information
+				</h2>
 				<p>
 					Enter the account details and select a payment option to evaluate a
 					plan
@@ -102,14 +106,18 @@ export function ReviewForm({
 				{Object.keys(errors).length > 0 && (
 					<div className="form-validation-summary" role="alert">
 						<ErrorCircle24Regular aria-hidden="true" />
-						<span>Correct the highlighted fields before evaluating the plan.</span>
+						<span>
+							Correct the highlighted fields before evaluating the plan.
+						</span>
 					</div>
 				)}
 
 				<label className="form-field">
 					<span>Member Number</span>
 					<input
-						aria-describedby={errors.memberNumber ? "member-number-error" : undefined}
+						aria-describedby={
+							errors.memberNumber ? "member-number-error" : undefined
+						}
 						aria-invalid={Boolean(errors.memberNumber)}
 						autoComplete="off"
 						value={memberNumber}
@@ -128,7 +136,9 @@ export function ReviewForm({
 				<label className="form-field">
 					<span>Past Due Date</span>
 					<input
-						aria-describedby={errors.pastDueDate ? "past-due-date-error" : undefined}
+						aria-describedby={
+							errors.pastDueDate ? "past-due-date-error" : undefined
+						}
 						aria-invalid={Boolean(errors.pastDueDate)}
 						type="date"
 						value={pastDueDate}
@@ -149,7 +159,9 @@ export function ReviewForm({
 					<div className="money-input">
 						<span aria-hidden="true">$</span>
 						<input
-							aria-describedby={errors.pastDueBalance ? "past-due-balance-error" : undefined}
+							aria-describedby={
+								errors.pastDueBalance ? "past-due-balance-error" : undefined
+							}
 							aria-invalid={Boolean(errors.pastDueBalance)}
 							min="0.01"
 							step="0.01"
@@ -173,7 +185,9 @@ export function ReviewForm({
 					<div className="money-input">
 						<span aria-hidden="true">$</span>
 						<input
-							aria-describedby={errors.monthlyPayment ? "monthly-payment-error" : undefined}
+							aria-describedby={
+								errors.monthlyPayment ? "monthly-payment-error" : undefined
+							}
 							aria-invalid={Boolean(errors.monthlyPayment)}
 							min="0.01"
 							step="0.01"
@@ -198,7 +212,9 @@ export function ReviewForm({
 						Deferments Used
 					</span>
 					<input
-						aria-describedby={errors.regularDefermentCount ? "deferment-count-error" : undefined}
+						aria-describedby={
+							errors.regularDefermentCount ? "deferment-count-error" : undefined
+						}
 						aria-invalid={Boolean(errors.regularDefermentCount)}
 						min="0"
 						max="2"
@@ -257,7 +273,9 @@ export function ReviewForm({
 					<div className="money-input">
 						<span aria-hidden="true">$</span>
 						<input
-							aria-describedby={errors.paymentAmount ? "payment-amount-error" : undefined}
+							aria-describedby={
+								errors.paymentAmount ? "payment-amount-error" : undefined
+							}
 							aria-invalid={Boolean(errors.paymentAmount)}
 							min="0.01"
 							step="0.01"

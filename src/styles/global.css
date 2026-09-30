@@ -57,10 +57,7 @@ button:disabled {
 	align-items: center;
 	justify-content: space-between;
 	gap: 24px;
-	width: min(
-		var(--content-max-width),
-		calc(100% - (var(--page-gutter) * 2))
-	);
+	width: min(var(--content-max-width), calc(100% - (var(--page-gutter) * 2)));
 	margin: 0 auto;
 	padding: 24px 0 18px;
 }
@@ -94,10 +91,7 @@ button:disabled {
 .app-nav {
 	display: flex;
 	gap: 8px;
-	width: min(
-		var(--content-max-width),
-		calc(100% - (var(--page-gutter) * 2))
-	);
+	width: min(var(--content-max-width), calc(100% - (var(--page-gutter) * 2)));
 	margin: 0 auto;
 }
 
@@ -125,10 +119,7 @@ button:disabled {
 }
 
 .app-main {
-	width: min(
-		var(--content-max-width),
-		calc(100% - (var(--page-gutter) * 2))
-	);
+	width: min(var(--content-max-width), calc(100% - (var(--page-gutter) * 2)));
 	margin: 0 auto;
 	padding: 32px 0 48px;
 }
@@ -157,6 +148,19 @@ button:disabled {
 	margin: 0;
 	color: #183a61;
 	font-size: 1.25rem;
+}
+
+.heading-with-icon {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.heading-with-icon svg {
+	flex: 0 0 auto;
+	width: 22px;
+	height: 22px;
+	color: #2776ba;
 }
 
 .panel-heading p {
@@ -708,11 +712,21 @@ button:disabled {
 }
 
 .decision-summary dt {
+	display: flex;
+	align-items: center;
+	gap: 6px;
 	margin-bottom: 6px;
 	color: #657286;
 	font-size: 0.8rem;
 	font-weight: 700;
 	text-transform: uppercase;
+}
+
+.decision-summary dt svg {
+	flex: 0 0 auto;
+	width: 18px;
+	height: 18px;
+	color: #2776ba;
 }
 
 .decision-summary dd {
@@ -787,6 +801,7 @@ button:disabled {
 }
 
 .manager-review-card {
+	position: relative;
 	display: grid;
 	gap: 22px;
 	padding: 22px;
@@ -794,6 +809,72 @@ button:disabled {
 	border-radius: 12px;
 	background: #ffffff;
 	box-shadow: 0 4px 14px rgb(15 38 66 / 6%);
+	overflow: hidden;
+}
+
+.manager-review-card--resolved {
+	pointer-events: none;
+	animation: resolved-card-exit 1.1s ease-in forwards;
+}
+
+.manager-resolution-overlay {
+	position: absolute;
+	z-index: 5;
+	inset: 0;
+	display: grid;
+	place-content: center;
+	justify-items: center;
+	gap: 10px;
+	color: #176635;
+	background: rgb(233 247 237 / 96%);
+	animation: resolution-pop 1.1s ease-out forwards;
+}
+
+.manager-review-card--denied .manager-resolution-overlay {
+	color: #8b2530;
+	background: rgb(253 236 238 / 96%);
+}
+
+.manager-resolution-overlay svg {
+	width: 72px;
+	height: 72px;
+}
+
+.manager-resolution-overlay strong {
+	font-size: 1.35rem;
+}
+
+@keyframes resolution-pop {
+	0% {
+		opacity: 0;
+		transform: scale(0.72);
+	}
+	22%,
+	72% {
+		opacity: 1;
+		transform: scale(1);
+	}
+	100% {
+		opacity: 0;
+		transform: scale(1.04);
+	}
+}
+
+@keyframes resolved-card-exit {
+	0%,
+	72% {
+		max-height: 2000px;
+		opacity: 1;
+		transform: scale(1);
+	}
+	100% {
+		max-height: 0;
+		padding-top: 0;
+		padding-bottom: 0;
+		border-width: 0;
+		opacity: 0;
+		transform: scale(0.98);
+	}
 }
 
 .manager-review-heading {
@@ -1352,6 +1433,11 @@ button svg {
 }
 
 @media (prefers-reduced-motion: reduce) {
+	.manager-review-card--resolved,
+	.manager-resolution-overlay {
+		animation: none;
+	}
+
 	.loading-indicator-icon,
 	.loading-indicator-icon svg,
 	.spinning-icon,

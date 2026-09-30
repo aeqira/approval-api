@@ -1,5 +1,6 @@
 import { Clipboard24Regular } from "@fluentui/react-icons/svg/clipboard";
 import { Dismiss24Regular } from "@fluentui/react-icons/svg/dismiss";
+import { PersonFeedback24Regular } from "@fluentui/react-icons/svg/person-feedback";
 import { useEffect, useRef } from "react";
 import {
 	copyTextToClipboard,
@@ -91,7 +92,10 @@ export function AccountCommentModal({
 				<div className="comment-modal-heading">
 					<div>
 						<p>Member {submission.memberNumber}</p>
-						<h2 id="comment-modal-title">Account Comment</h2>
+						<h2 className="heading-with-icon" id="comment-modal-title">
+							<Clipboard24Regular aria-hidden="true" />
+							Account Comment
+						</h2>
 					</div>
 
 					<button
@@ -119,7 +123,12 @@ export function AccountCommentModal({
 									className={`comment-log comment-log--${blockIndex === 0 ? "original" : "manager"}`}
 									key={`${blockIndex}-${block}`}
 								>
-									<h3>
+									<h3 className="heading-with-icon">
+										{blockIndex === 0 ? (
+											<Clipboard24Regular aria-hidden="true" />
+										) : (
+											<PersonFeedback24Regular aria-hidden="true" />
+										)}
 										{blockIndex === 0
 											? "Original Decision Log"
 											: "Manager Decision Log"}
@@ -138,9 +147,7 @@ export function AccountCommentModal({
 					<button
 						className="secondary-button"
 						type="button"
-						onClick={() =>
-							void copyTextToClipboard(submission.accountComment)
-						}
+						onClick={() => void copyTextToClipboard(submission.accountComment)}
 					>
 						<Clipboard24Regular aria-hidden="true" />
 						Copy Comment

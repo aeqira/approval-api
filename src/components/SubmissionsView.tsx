@@ -25,8 +25,7 @@ export function SubmissionsView() {
 	const [submissions, setSubmissions] = useState<ApprovalSubmission[]>([]);
 	const [draftFilters, setDraftFilters] =
 		useState<SubmissionFilterValues>(EMPTY_FILTERS);
-	const [filters, setFilters] =
-		useState<SubmissionFilterValues>(EMPTY_FILTERS);
+	const [filters, setFilters] = useState<SubmissionFilterValues>(EMPTY_FILTERS);
 	const [sortBy, setSortBy] = useState<SubmissionSortField>("createdAt");
 	const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 	const [page, setPage] = useState(1);
@@ -96,7 +95,10 @@ export function SubmissionsView() {
 		<section className="workspace-panel submissions-view">
 			<div className="panel-heading submissions-heading">
 				<div>
-					<h2>All Submissions</h2>
+					<h2 className="heading-with-icon">
+						<ClipboardTaskListLtr24Regular aria-hidden="true" />
+						All Submissions
+					</h2>
 					<p>
 						Search and review payment-plan decisions submitted by all employees
 					</p>
@@ -162,3 +164,4 @@ export function SubmissionsView() {
 		</section>
 	);
 }
+import { ClipboardTaskListLtr24Regular } from "@fluentui/react-icons/svg/clipboard-task-list-ltr";
