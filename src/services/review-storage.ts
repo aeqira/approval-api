@@ -92,36 +92,33 @@ export async function listPendingManagerReviews(
 		.prepare(
 			`
 				SELECT
-					id,
-					member_number,
-					associate_email,
+					approval_reviews.id,
+					approval_reviews.member_number,
+					approval_reviews.associate_email,
 					COALESCE(
-						(
-							SELECT users.display_name
-							FROM users
-							WHERE users.email = approval_reviews.associate_email COLLATE NOCASE
-								AND users.active = 1
-							LIMIT 1
-						),
-						associate_email
+						associate_user.display_name,
+						approval_reviews.associate_email
 					) AS associate_display_name,
-					past_due_date,
-					days_past_due,
-					adjusted_days_past_due,
-					past_due_balance_cents,
-					adjusted_past_due_balance_cents,
-					monthly_payment_cents,
-					plan_payment_cents,
-					number_of_payments,
-					regular_deferment_available,
-					regular_deferment_applied,
-					deferment_months,
-					deferred_amount_cents,
-					reasons_json,
-					created_at
+					approval_reviews.past_due_date,
+					approval_reviews.days_past_due,
+					approval_reviews.adjusted_days_past_due,
+					approval_reviews.past_due_balance_cents,
+					approval_reviews.adjusted_past_due_balance_cents,
+					approval_reviews.monthly_payment_cents,
+					approval_reviews.plan_payment_cents,
+					approval_reviews.number_of_payments,
+					approval_reviews.regular_deferment_available,
+					approval_reviews.regular_deferment_applied,
+					approval_reviews.deferment_months,
+					approval_reviews.deferred_amount_cents,
+					approval_reviews.reasons_json,
+					approval_reviews.created_at
 				FROM approval_reviews
-				WHERE current_status = 'manager_review'
-				ORDER BY created_at ASC
+				LEFT JOIN users AS associate_user
+					ON associate_user.email = approval_reviews.associate_email COLLATE NOCASE
+					AND associate_user.active = 1
+				WHERE approval_reviews.current_status = 'manager_review'
+				ORDER BY approval_reviews.created_at ASC
 				LIMIT 100
 			`,
 		)

@@ -1,3 +1,5 @@
+import type { FormEvent } from "react";
+
 export type AppView = "new-review" | "manager-queue" | "submissions";
 
 export type UserRole = "associate" | "manager";
@@ -17,6 +19,14 @@ export interface IdentityResponse {
 export interface ApiErrorResponse {
 	error: string;
 }
+
+export type AuthenticationResult =
+	| { ok: true; email: string }
+	| { ok: false; response: Response };
+
+export type ManagerAuthorizationResult =
+	| { ok: true; user: AppUser }
+	| { ok: false; response: Response };
 
 export type PaymentChoice =
 	| {
@@ -142,6 +152,30 @@ export interface SubmissionFilters {
 	defermentApplied: "" | "true" | "false";
 	dateFrom: string;
 	dateTo: string;
+}
+
+export interface SubmissionFiltersProps {
+	filters: SubmissionFilters;
+	sortBy: SubmissionSortField;
+	sortDirection: SortDirection;
+	onApply: (event: FormEvent<HTMLFormElement>) => void;
+	onChange: (filters: SubmissionFilters) => void;
+	onClear: () => void;
+	onSortByChange: (sortBy: SubmissionSortField) => void;
+	onSortDirectionChange: (direction: SortDirection) => void;
+}
+
+export interface SubmissionsTableProps {
+	submissions: ApprovalSubmission[];
+	page: number;
+	totalPages: number;
+	onPageChange: (page: number) => void;
+	onViewComment: (submission: ApprovalSubmission) => void;
+}
+
+export interface AccountCommentModalProps {
+	submission: ApprovalSubmission;
+	onClose: () => void;
 }
 
 export interface ListSubmissionsInput {

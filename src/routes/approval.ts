@@ -1,13 +1,20 @@
 import { isApprovalRequest } from "../schemas/approval";
 import { evaluateApproval } from "../services/approval";
-import { jsonNoStore } from "../functions/helpers";
+import { jsonNoStore, logWorkerError } from "../functions/helpers";
+import { requireAuthenticatedEmail } from "../services/authorization";
 import { saveApprovalReview } from "../services/review-storage";
 
 export async function handleApproval(
 	request: Request,
 	database: D1Database,
-	associateEmail: string,
+	context: ExecutionContext,
 ): Promise<Response> {
+	const authentication = await requireAuthenticatedEmail(request, context);
+
+	if (!authentication.ok) {
+		return authentication.response;
+	}
+
 	let body: unknown;
 
 	try {
@@ -42,7 +49,7 @@ export async function handleApproval(
 
 	try {
 		const reviewId = await saveApprovalReview(database, {
-			associateEmail,
+			associateEmail: authentication.email,
 			request: body,
 			decision,
 		});
@@ -52,12 +59,7 @@ export async function handleApproval(
 			reviewId,
 		});
 	} catch (error) {
-		console.error(
-			JSON.stringify({
-				message: "Failed to save approval review",
-				error: error instanceof Error ? error.message : String(error),
-			}),
-		);
+		logWorkerError("Failed to save approval review", error);
 	}
 
 	return jsonNoStore(

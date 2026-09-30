@@ -1,4 +1,9 @@
-import { jsonNoStore, parsePositiveInteger } from "../functions/helpers";
+import {
+	jsonNoStore,
+	logWorkerError,
+	parsePositiveInteger,
+} from "../functions/helpers";
+import { requireAuthenticatedEmail } from "../services/authorization";
 import { listSubmissions } from "../services/submission-storage";
 import type {
 	ApprovalStatus,
@@ -22,7 +27,14 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 export async function handleListSubmissions(
 	request: Request,
 	database: D1Database,
+	context: ExecutionContext,
 ): Promise<Response> {
+	const authentication = await requireAuthenticatedEmail(request, context);
+
+	if (!authentication.ok) {
+		return authentication.response;
+	}
+
 	const url = new URL(request.url);
 	const search = url.searchParams.get("search")?.trim() || undefined;
 	const statusValue = url.searchParams.get("status");
@@ -90,13 +102,7 @@ export async function handleListSubmissions(
 
 		return jsonNoStore(result);
 	} catch (error) {
-		console.error(
-			JSON.stringify({
-				message: "Failed to load submissions",
-				error: error instanceof Error ? error.message : String(error),
-			}),
-		);
-
+		logWorkerError("Failed to load submissions", error);
 		return jsonNoStore({ error: "Unable to load submissions" }, 500);
 	}
 }

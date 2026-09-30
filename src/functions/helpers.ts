@@ -23,13 +23,38 @@ export function getStatusLabel(status: ApprovalStatus): string {
 	return status === "approved" ? "Approved" : "Denied";
 }
 
-export function jsonNoStore(body: unknown, status: number = 200): Response {
+export function jsonNoStore(
+	body: unknown,
+	status: number = 200,
+	headers: HeadersInit = {},
+): Response {
 	return Response.json(body, {
 		status,
 		headers: {
+			...headers,
 			"Cache-Control": "no-store",
 		},
 	});
+}
+
+export function methodNotAllowed(allowedMethod: string): Response {
+	return jsonNoStore({ error: "Method not allowed" }, 405, {
+		Allow: allowedMethod,
+	});
+}
+
+export function logWorkerError(
+	message: string,
+	error: unknown,
+	context: Record<string, unknown> = {},
+): void {
+	console.error(
+		JSON.stringify({
+			message,
+			...context,
+			error: error instanceof Error ? error.message : String(error),
+		}),
+	);
 }
 
 export function isPositiveNumber(value: unknown): value is number {
@@ -51,12 +76,19 @@ export function isValidDate(value: unknown): value is string {
 
 	const parsedDate = new Date(`${value}T00:00:00Z`);
 
-	if (Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== value) {
+	if (
+		Number.isNaN(parsedDate.getTime()) ||
+		parsedDate.toISOString().slice(0, 10) !== value
+	) {
 		return false;
 	}
 
 	const now = new Date();
-	const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+	const today = Date.UTC(
+		now.getUTCFullYear(),
+		now.getUTCMonth(),
+		now.getUTCDate(),
+	);
 
 	return parsedDate.getTime() <= today;
 }
@@ -104,7 +136,10 @@ export async function readApiResponse<T>(
 	return body as T;
 }
 
-export function getErrorMessage(error: unknown, fallbackMessage: string): string {
+export function getErrorMessage(
+	error: unknown,
+	fallbackMessage: string,
+): string {
 	return error instanceof Error ? error.message : fallbackMessage;
 }
 
@@ -154,7 +189,11 @@ export function calculateDaysPastDue(pastDueDate: string): number {
 	const dueDate = new Date(`${pastDueDate}T00:00:00Z`);
 	const now = new Date();
 
-	const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+	const today = Date.UTC(
+		now.getUTCFullYear(),
+		now.getUTCMonth(),
+		now.getUTCDate(),
+	);
 
 	const difference = today - dueDate.getTime();
 	const millisecondsPerDay = 24 * 60 * 60 * 1000;

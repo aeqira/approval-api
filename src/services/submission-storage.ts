@@ -9,12 +9,12 @@ import type {
 } from "../types/approval";
 
 const SORT_COLUMNS: Record<SubmissionSortField, string> = {
-	createdAt: "created_at",
-	memberNumber: "member_number",
-	status: "current_status",
-	daysPastDue: "adjusted_days_past_due",
-	pastDueBalance: "adjusted_past_due_balance_cents",
-	numberOfPayments: "number_of_payments",
+	createdAt: "approval_reviews.created_at",
+	memberNumber: "approval_reviews.member_number",
+	status: "approval_reviews.current_status",
+	daysPastDue: "approval_reviews.adjusted_days_past_due",
+	pastDueBalance: "approval_reviews.adjusted_past_due_balance_cents",
+	numberOfPayments: "approval_reviews.number_of_payments",
 };
 
 export async function listSubmissions(
@@ -29,13 +29,7 @@ export async function listSubmissions(
 			`(
 				approval_reviews.member_number LIKE ? COLLATE NOCASE OR
 				approval_reviews.associate_email LIKE ? COLLATE NOCASE OR
-				EXISTS (
-					SELECT 1
-					FROM users
-					WHERE users.email = approval_reviews.associate_email COLLATE NOCASE
-						AND users.active = 1
-						AND users.display_name LIKE ? COLLATE NOCASE
-				)
+				associate_user.display_name LIKE ? COLLATE NOCASE
 			)`,
 		);
 
@@ -44,22 +38,22 @@ export async function listSubmissions(
 	}
 
 	if (input.status) {
-		conditions.push("current_status = ?");
+		conditions.push("approval_reviews.current_status = ?");
 		bindings.push(input.status);
 	}
 
 	if (input.defermentApplied !== undefined) {
-		conditions.push("regular_deferment_applied = ?");
+		conditions.push("approval_reviews.regular_deferment_applied = ?");
 		bindings.push(input.defermentApplied ? 1 : 0);
 	}
 
 	if (input.dateFrom) {
-		conditions.push("date(created_at) >= date(?)");
+		conditions.push("date(approval_reviews.created_at) >= date(?)");
 		bindings.push(input.dateFrom);
 	}
 
 	if (input.dateTo) {
-		conditions.push("date(created_at) <= date(?)");
+		conditions.push("date(approval_reviews.created_at) <= date(?)");
 		bindings.push(input.dateTo);
 	}
 
@@ -71,6 +65,9 @@ export async function listSubmissions(
 			`
 				SELECT COUNT(*) AS total
 				FROM approval_reviews
+				LEFT JOIN users AS associate_user
+					ON associate_user.email = approval_reviews.associate_email COLLATE NOCASE
+					AND associate_user.active = 1
 				${whereClause}
 			`,
 		)
@@ -86,41 +83,41 @@ export async function listSubmissions(
 		.prepare(
 			`
 				SELECT
-					id,
-					member_number,
-					associate_email,
+					approval_reviews.id,
+					approval_reviews.member_number,
+					approval_reviews.associate_email,
 					COALESCE(
-						(
-							SELECT users.display_name
-							FROM users
-							WHERE users.email = approval_reviews.associate_email COLLATE NOCASE
-								AND users.active = 1
-							LIMIT 1
-						),
-						associate_email
+						associate_user.display_name,
+						approval_reviews.associate_email
 					) AS associate_display_name,
-					past_due_date,
-					days_past_due,
-					adjusted_days_past_due,
-					past_due_balance_cents,
-					adjusted_past_due_balance_cents,
-					monthly_payment_cents,
-					plan_payment_cents,
-					number_of_payments,
-					regular_deferment_applied,
-					deferment_months,
-					deferred_amount_cents,
-					initial_status,
-					current_status,
-					reasons_json,
-					COALESCE(final_account_comment, account_comment) AS account_comment,
-					manager_email,
-					manager_reason,
-					reviewed_at,
-					created_at
+					approval_reviews.past_due_date,
+					approval_reviews.days_past_due,
+					approval_reviews.adjusted_days_past_due,
+					approval_reviews.past_due_balance_cents,
+					approval_reviews.adjusted_past_due_balance_cents,
+					approval_reviews.monthly_payment_cents,
+					approval_reviews.plan_payment_cents,
+					approval_reviews.number_of_payments,
+					approval_reviews.regular_deferment_applied,
+					approval_reviews.deferment_months,
+					approval_reviews.deferred_amount_cents,
+					approval_reviews.initial_status,
+					approval_reviews.current_status,
+					approval_reviews.reasons_json,
+					COALESCE(
+						approval_reviews.final_account_comment,
+						approval_reviews.account_comment
+					) AS account_comment,
+					approval_reviews.manager_email,
+					approval_reviews.manager_reason,
+					approval_reviews.reviewed_at,
+					approval_reviews.created_at
 				FROM approval_reviews
+				LEFT JOIN users AS associate_user
+					ON associate_user.email = approval_reviews.associate_email COLLATE NOCASE
+					AND associate_user.active = 1
 				${whereClause}
-				ORDER BY ${sortColumn} ${sortDirection}, id ASC
+				ORDER BY ${sortColumn} ${sortDirection}, approval_reviews.id ASC
 				LIMIT ? OFFSET ?
 			`,
 		)

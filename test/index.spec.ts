@@ -46,6 +46,30 @@ async function readApprovalResponse(
 	return (await response.json()) as ApprovalResponse;
 }
 
+describe("API routing", () => {
+	it.each([
+		[API_ROUTES.health, "POST", "GET"],
+		[API_ROUTES.identity, "POST", "GET"],
+		[API_ROUTES.submissions, "POST", "GET"],
+		[API_ROUTES.managerReviews, "POST", "GET"],
+		[API_ROUTES.managerReview("00000000-0000-4000-8000-000000000000"), "GET", "PATCH"],
+		[API_ROUTES.approval, "GET", "POST"],
+	])(
+		"returns a no-store 405 response for %s",
+		async (path, method, allowedMethod) => {
+			const response = await SELF.fetch(
+				new URL(path, "https://example.com").toString(),
+				{ method },
+			);
+
+			expect(response.status).toBe(405);
+			expect(response.headers.get("Allow")).toBe(allowedMethod);
+			expect(response.headers.get("Cache-Control")).toBe("no-store");
+			expect(await response.json()).toEqual({ error: "Method not allowed" });
+		},
+	);
+});
+
 describe("Identity API", () => {
 	it("returns the authenticated associate email", async () => {
 		const response = await SELF.fetch(

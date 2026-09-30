@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { API_ROUTES } from "../config/api";
 import {
 	formatCurrency,
@@ -12,6 +12,7 @@ export function ManagerQueue() {
 	const [reviews, setReviews] = useState<ManagerReview[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const activeRequest = useRef<AbortController | null>(null);
 
 	function removeResolvedReview(reviewId: string) {
 		setReviews((currentReviews) =>
@@ -20,6 +21,10 @@ export function ManagerQueue() {
 	}
 
 	const loadReviews = useCallback(async (showLoading = true) => {
+		activeRequest.current?.abort();
+		const requestController = new AbortController();
+		activeRequest.current = requestController;
+
 		if (showLoading) {
 			setIsLoading(true);
 		}
@@ -31,6 +36,7 @@ export function ManagerQueue() {
 				headers: {
 					Accept: "application/json",
 				},
+				signal: requestController.signal,
 			});
 
 			const body = await readApiResponse<ManagerReviewsResponse>(
@@ -40,11 +46,19 @@ export function ManagerQueue() {
 
 			setReviews(body.reviews);
 		} catch (caughtError) {
+			if (requestController.signal.aborted) {
+				return;
+			}
+
 			setError(
 				getErrorMessage(caughtError, "Unable to load Manager Reviews"),
 			);
 		} finally {
-			if (showLoading) {
+			if (activeRequest.current === requestController) {
+				activeRequest.current = null;
+			}
+
+			if (showLoading && !requestController.signal.aborted) {
 				setIsLoading(false);
 			}
 		}
@@ -54,11 +68,22 @@ export function ManagerQueue() {
 		void loadReviews();
 
 		const intervalId = window.setInterval(() => {
-			void loadReviews(false);
+			if (!document.hidden) {
+				void loadReviews(false);
+			}
 		}, 5000);
+		const handleVisibilityChange = () => {
+			if (!document.hidden) {
+				void loadReviews(false);
+			}
+		};
+
+		document.addEventListener("visibilitychange", handleVisibilityChange);
 
 		return () => {
+			activeRequest.current?.abort();
 			window.clearInterval(intervalId);
+			document.removeEventListener("visibilitychange", handleVisibilityChange);
 		};
 	}, [loadReviews]);
 
