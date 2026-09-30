@@ -211,7 +211,7 @@ export async function resolveManagerReview(
 		`Manager decision: ${statusLabel}.`,
 		`Manager: ${input.managerDisplayName}.`,
 		`Manager decision reason: ${managerReasonForComment}.`,
-	].join(" ");
+	].join("\n");
 
 	const accountComment = [
 		pendingReview.account_comment.trim(),

@@ -219,12 +219,12 @@ Example response:
 	"managerEmail": "arichard@aeqira.com",
 	"managerDisplayName": "Andrew Richard",
 	"managerReason": "Payment history supports approval.",
-	"accountComment": "Payment plan decision: MANAGER REVIEW. Member number: 123456. Due date: 2026-08-15. Original days delinquent: 45. Adjusted days delinquent: 45. Original delinquent balance: $600.00. Adjusted delinquent balance: $600.00. Regular deferment not available. Plan payment: $400.00. Payment count: 6. Final payment: $400.00. Decision reason: The loan remains between 31 and 89 days delinquent after deferment.\n\nManager decision: APPROVED. Manager: Andrew Richard. Manager decision reason: Payment history supports approval.",
+	"accountComment": "Payment plan decision: MANAGER REVIEW. Member number: 123456. Due date: 2026-08-15. Original days delinquent: 45. Adjusted days delinquent: 45. Original delinquent balance: $600.00. Adjusted delinquent balance: $600.00. Regular deferment not available. Plan payment: $400.00. Payment count: 6. Final payment: $400.00. Decision reason: The loan remains between 31 and 89 days delinquent after deferment.\n\nManager decision: APPROVED.\nManager: Andrew Richard.\nManager decision reason: Payment history supports approval.",
 	"reviewedAt": "2026-09-29T11:30:00.000Z"
 }
 ```
 
-The original API decision remains stored in `initial_status`. The manager’s decision is stored in `current_status` along with the manager email, reason, and review timestamp. The final account comment preserves the complete original API comment, adds a blank line, and then appends the manager decision as a separate log entry.
+The original API decision remains stored in `initial_status`. The manager’s decision is stored in `current_status` along with the manager email, reason, and review timestamp. The final account comment preserves the complete original API comment, adds a blank line, and then appends the manager decision as a separate log entry with each field on its own line.
 
 A pending review can only be resolved once. Attempts to change an already resolved review return HTTP status `404`.
 

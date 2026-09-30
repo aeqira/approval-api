@@ -41,6 +41,14 @@ function formatSubmittedAt(value: string): string {
 	return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 }
 
+function splitOriginalComment(comment: string): string[] {
+	return comment
+		.split(/\.\s+(?=[A-Z])/)
+		.map((entry) => entry.trim())
+		.filter(Boolean)
+		.map((entry) => (entry.endsWith(".") ? entry : `${entry}.`));
+}
+
 export function SubmissionsView() {
 	const [submissions, setSubmissions] = useState<ApprovalSubmission[]>([]);
 	const [draftFilters, setDraftFilters] =
@@ -53,6 +61,8 @@ export function SubmissionsView() {
 	const [totalPages, setTotalPages] = useState(1);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const [selectedSubmission, setSelectedSubmission] =
+		useState<ApprovalSubmission | null>(null);
 
 	const loadSubmissions = useCallback(async () => {
 		setIsLoading(true);
@@ -120,6 +130,28 @@ export function SubmissionsView() {
 		void loadSubmissions();
 	}, [loadSubmissions]);
 
+	useEffect(() => {
+		if (!selectedSubmission) {
+			return;
+		}
+
+		function handleKeyDown(event: KeyboardEvent) {
+			if (event.key === "Escape") {
+				setSelectedSubmission(null);
+			}
+		}
+
+		const previousOverflow = document.body.style.overflow;
+
+		document.body.style.overflow = "hidden";
+		document.addEventListener("keydown", handleKeyDown);
+
+		return () => {
+			document.body.style.overflow = previousOverflow;
+			document.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [selectedSubmission]);
+
 	function handleApplyFilters(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		setPage(1);
@@ -135,6 +167,7 @@ export function SubmissionsView() {
 		setSortBy("createdAt");
 		setSortDirection("desc");
 		setPage(1);
+		setSelectedSubmission(null);
 	}
 
 	async function copyAccountComment(comment: string) {
@@ -343,23 +376,13 @@ export function SubmissionsView() {
 												: "Not applied"}
 										</td>
 										<td>
-											<details className="submission-comment">
-												<summary>View Comment</summary>
-
-												<div className="submission-comment-content">
-													<p>{submission.accountComment}</p>
-
-													<button
-														className="secondary-button"
-														type="button"
-														onClick={() =>
-															void copyAccountComment(submission.accountComment)
-														}
-													>
-														Copy Comment
-													</button>
-												</div>
-											</details>
+											<button
+												className="submission-comment-button"
+												type="button"
+												onClick={() => setSelectedSubmission(submission)}
+											>
+												View Comment
+											</button>
 										</td>
 									</tr>
 								))}
@@ -393,6 +416,91 @@ export function SubmissionsView() {
 						</button>
 					</div>
 				</>
+			)}
+
+			{selectedSubmission && (
+				<div
+					className="comment-modal-backdrop"
+					onMouseDown={(event) => {
+						if (event.target === event.currentTarget) {
+							setSelectedSubmission(null);
+						}
+					}}
+				>
+					<section
+						aria-labelledby="comment-modal-title"
+						aria-modal="true"
+						className="comment-modal"
+						role="dialog"
+					>
+						<div className="comment-modal-heading">
+							<div>
+								<p>Member {selectedSubmission.memberNumber}</p>
+								<h2 id="comment-modal-title">Account Comment</h2>
+							</div>
+
+							<button
+								aria-label="Close account comment"
+								autoFocus
+								className="comment-modal-close"
+								type="button"
+								onClick={() => setSelectedSubmission(null)}
+							>
+								×
+							</button>
+						</div>
+
+						<div className="comment-modal-content">
+							{selectedSubmission.accountComment
+								.split("\n\n")
+								.filter(Boolean)
+								.map((block, blockIndex) => {
+									const entries =
+										blockIndex === 0
+											? splitOriginalComment(block)
+											: block.split("\n").filter(Boolean);
+
+									return (
+										<div
+											className={`comment-log comment-log--${blockIndex === 0 ? "original" : "manager"}`}
+											key={block}
+										>
+											<h3>
+												{blockIndex === 0
+													? "Original Decision Log"
+													: "Manager Decision Log"}
+											</h3>
+											<ul>
+												{entries.map((line) => (
+													<li key={line}>{line}</li>
+												))}
+											</ul>
+										</div>
+									);
+								})}
+						</div>
+
+						<div className="comment-modal-actions">
+							<button
+								className="secondary-button"
+								type="button"
+								onClick={() =>
+									void copyAccountComment(selectedSubmission.accountComment)
+								}
+							>
+								Copy Comment
+							</button>
+
+							<button
+								className="primary-button"
+								type="button"
+								onClick={() => setSelectedSubmission(null)}
+							>
+								Close
+							</button>
+						</div>
+					</section>
+				</div>
 			)}
 		</section>
 	);
