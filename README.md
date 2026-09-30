@@ -65,8 +65,8 @@ Response:
 
 ```json
 {
-	"name": "Approval API",
-	"status": "running"
+    "name": "Approval API",
+    "status": "running"
 }
 ```
 
@@ -84,9 +84,9 @@ Associate response:
 
 ```json
 {
-	"email": "associate@aeqira.com",
-	"displayName": "associate@aeqira.com",
-	"role": "associate"
+    "email": "associate@aeqira.com",
+    "displayName": "associate@aeqira.com",
+    "role": "associate"
 }
 ```
 
@@ -94,9 +94,9 @@ Manager response:
 
 ```json
 {
-	"email": "arichard@aeqira.com",
-	"displayName": "Andrew Richard",
-	"role": "manager"
+    "email": "arichard@aeqira.com",
+    "displayName": "Andrew Richard",
+    "role": "manager"
 }
 ```
 
@@ -104,7 +104,7 @@ If an authenticated identity is unavailable, the endpoint returns HTTP status `4
 
 ```json
 {
-	"error": "Authentication required"
+    "error": "Authentication required"
 }
 ```
 
@@ -157,28 +157,28 @@ Example response:
 
 ```json
 {
-	"reviews": [
-		{
-			"reviewId": "72b708ee-957b-466f-9cd6-fd3e09aca998",
-			"memberNumber": "123456",
-			"associateEmail": "associate@aeqira.com",
-			"associateDisplayName": "Associate Name",
-			"pastDueDate": "2026-08-15",
-			"daysPastDue": 45,
-			"adjustedDaysPastDue": 45,
-			"pastDueBalance": 600,
-			"adjustedPastDueBalance": 600,
-			"monthlyPayment": 300,
-			"planPayment": 400,
-			"numberOfPayments": 6,
-			"regularDefermentAvailable": false,
-			"regularDefermentApplied": false,
-			"defermentMonths": 0,
-			"deferredAmount": 0,
-			"reasons": ["The loan remains between 31 and 89 days delinquent after deferment."],
-			"createdAt": "2026-09-29 10:11:22"
-		}
-	]
+    "reviews": [
+        {
+            "reviewId": "72b708ee-957b-466f-9cd6-fd3e09aca998",
+            "memberNumber": "123456",
+            "associateEmail": "associate@aeqira.com",
+            "associateDisplayName": "Associate Name",
+            "pastDueDate": "2026-08-15",
+            "daysPastDue": 45,
+            "adjustedDaysPastDue": 45,
+            "pastDueBalance": 600,
+            "adjustedPastDueBalance": 600,
+            "monthlyPayment": 300,
+            "planPayment": 400,
+            "numberOfPayments": 6,
+            "regularDefermentAvailable": false,
+            "regularDefermentApplied": false,
+            "defermentMonths": 0,
+            "deferredAmount": 0,
+            "reasons": ["The loan remains between 31 and 89 days delinquent after deferment."],
+            "createdAt": "2026-09-29 10:11:22"
+        }
+    ]
 }
 ```
 
@@ -194,8 +194,8 @@ Example approval request:
 
 ```json
 {
-	"status": "approved",
-	"reason": "Payment history supports approval."
+    "status": "approved",
+    "reason": "Payment history supports approval."
 }
 ```
 
@@ -203,8 +203,8 @@ Example denial request:
 
 ```json
 {
-	"status": "denied",
-	"reason": "The proposed arrangement is not supportable."
+    "status": "denied",
+    "reason": "The proposed arrangement is not supportable."
 }
 ```
 
@@ -214,13 +214,13 @@ Example response:
 
 ```json
 {
-	"reviewId": "72b708ee-957b-466f-9cd6-fd3e09aca998",
-	"status": "approved",
-	"managerEmail": "arichard@aeqira.com",
-	"managerDisplayName": "Andrew Richard",
-	"managerReason": "Payment history supports approval.",
-	"accountComment": "Payment plan decision: MANAGER REVIEW. Member number: 123456. Due date: 2026-08-15. Original days delinquent: 45. Adjusted days delinquent: 45. Original delinquent balance: $600.00. Adjusted delinquent balance: $600.00. Regular deferment not available. Plan payment: $400.00. Payment count: 6. Final payment: $400.00. Decision reason: The loan remains between 31 and 89 days delinquent after deferment.\n\nManager decision: APPROVED.\nManager: Andrew Richard.\nManager decision reason: Payment history supports approval.",
-	"reviewedAt": "2026-09-29T11:30:00.000Z"
+    "reviewId": "72b708ee-957b-466f-9cd6-fd3e09aca998",
+    "status": "approved",
+    "managerEmail": "arichard@aeqira.com",
+    "managerDisplayName": "Andrew Richard",
+    "managerReason": "Payment history supports approval.",
+    "accountComment": "Payment plan decision: MANAGER REVIEW. Member number: 123456. Due date: 2026-08-15. Original days delinquent: 45. Adjusted days delinquent: 45. Original delinquent balance: $600.00. Adjusted delinquent balance: $600.00. Regular deferment not available. Plan payment: $400.00. Payment count: 6. Final payment: $400.00. Decision reason: The loan remains between 31 and 89 days delinquent after deferment.\n\nManager decision: APPROVED.\nManager: Andrew Richard.\nManager decision reason: Payment history supports approval.",
+    "reviewedAt": "2026-09-29T11:30:00.000Z"
 }
 ```
 
@@ -253,15 +253,15 @@ Example request:
 
 ```json
 {
-	"memberNumber": "123456",
-	"pastDueDate": "2026-09-09",
-	"pastDueBalance": 650,
-	"monthlyPayment": 300,
-	"regularDefermentCount": 2,
-	"paymentChoice": {
-		"type": "minimum_plus_extra",
-		"extraAmount": 100
-	}
+    "memberNumber": "123456",
+    "pastDueDate": "2026-09-09",
+    "pastDueBalance": 650,
+    "monthlyPayment": 300,
+    "regularDefermentCount": 2,
+    "paymentChoice": {
+        "type": "minimum_plus_extra",
+        "extraAmount": 100
+    }
 }
 ```
 
@@ -289,15 +289,15 @@ Example request:
 
 ```json
 {
-	"memberNumber": "123456",
-	"pastDueDate": "2026-09-09",
-	"pastDueBalance": 650,
-	"monthlyPayment": 300,
-	"regularDefermentCount": 2,
-	"paymentChoice": {
-		"type": "affordable_payment",
-		"affordablePayment": 400
-	}
+    "memberNumber": "123456",
+    "pastDueDate": "2026-09-09",
+    "pastDueBalance": 650,
+    "monthlyPayment": 300,
+    "regularDefermentCount": 2,
+    "paymentChoice": {
+        "type": "affordable_payment",
+        "affordablePayment": 400
+    }
 }
 ```
 
@@ -325,21 +325,21 @@ Example:
 
 ```json
 {
-	"reviewId": "72b708ee-957b-466f-9cd6-fd3e09aca998",
-	"status": "approved",
-	"daysPastDue": 20,
-	"adjustedDaysPastDue": 20,
-	"adjustedPastDueBalance": 650,
-	"planPayment": 400,
-	"catchUpAmount": 100,
-	"numberOfPayments": 7,
-	"finalPayment": 350,
-	"regularDefermentAvailable": false,
-	"regularDefermentApplied": false,
-	"defermentMonths": 0,
-	"deferredAmount": 0,
-	"reasons": ["All automatic approval criteria were met."],
-	"accountComment": "Payment plan decision: APPROVED. Member number: 123456. Due date: 2026-09-09. Original days delinquent: 20. Adjusted days delinquent: 20. Original delinquent balance: $650.00. Adjusted delinquent balance: $650.00. Regular deferment not available. Plan payment: $400.00. Payment count: 7. Final payment: $350.00. Decision reason: All automatic approval criteria were met."
+    "reviewId": "72b708ee-957b-466f-9cd6-fd3e09aca998",
+    "status": "approved",
+    "daysPastDue": 20,
+    "adjustedDaysPastDue": 20,
+    "adjustedPastDueBalance": 650,
+    "planPayment": 400,
+    "catchUpAmount": 100,
+    "numberOfPayments": 7,
+    "finalPayment": 350,
+    "regularDefermentAvailable": false,
+    "regularDefermentApplied": false,
+    "defermentMonths": 0,
+    "deferredAmount": 0,
+    "reasons": ["All automatic approval criteria were met."],
+    "accountComment": "Payment plan decision: APPROVED. Member number: 123456. Due date: 2026-09-09. Original days delinquent: 20. Adjusted days delinquent: 20. Original delinquent balance: $650.00. Adjusted delinquent balance: $650.00. Regular deferment not available. Plan payment: $400.00. Payment count: 7. Final payment: $350.00. Decision reason: All automatic approval criteria were met."
 }
 ```
 
@@ -481,9 +481,9 @@ npx wrangler d1 execute approval-api-db --local --command \
 "INSERT INTO users (email, role, active)
 VALUES ('manager@aeqira.com', 'manager', 1)
 ON CONFLICT(email) DO UPDATE SET
-	role = 'manager',
-	active = 1,
-	updated_at = CURRENT_TIMESTAMP;"
+    role = 'manager',
+    active = 1,
+    updated_at = CURRENT_TIMESTAMP;"
 ```
 
 To grant manager access in production:
@@ -493,9 +493,9 @@ npx wrangler d1 execute approval-api-db --remote --command \
 "INSERT INTO users (email, role, active)
 VALUES ('manager@aeqira.com', 'manager', 1)
 ON CONFLICT(email) DO UPDATE SET
-	role = 'manager',
-	active = 1,
-	updated_at = CURRENT_TIMESTAMP;"
+    role = 'manager',
+    active = 1,
+    updated_at = CURRENT_TIMESTAMP;"
 ```
 
 To deactivate a manager without deleting the audit record:
@@ -504,7 +504,7 @@ To deactivate a manager without deleting the audit record:
 npx wrangler d1 execute approval-api-db --remote --command \
 "UPDATE users
 SET active = 0,
-	updated_at = CURRENT_TIMESTAMP
+    updated_at = CURRENT_TIMESTAMP
 WHERE email = 'manager@aeqira.com';"
 ```
 
@@ -522,7 +522,7 @@ If no valid authenticated email is available, the Worker returns HTTP status `40
 
 ```json
 {
-	"error": "Authentication required"
+    "error": "Authentication required"
 }
 ```
 
@@ -530,7 +530,7 @@ If an authenticated user attempts to access a manager endpoint without an active
 
 ```json
 {
-	"error": "Manager access required"
+    "error": "Manager access required"
 }
 ```
 
@@ -542,15 +542,15 @@ Example:
 
 ```json
 {
-	"error": "Invalid approval request",
-	"requiredFields": [
-		"memberNumber",
-		"pastDueDate",
-		"pastDueBalance",
-		"monthlyPayment",
-		"regularDefermentCount",
-		"paymentChoice"
-	]
+    "error": "Invalid approval request",
+    "requiredFields": [
+        "memberNumber",
+        "pastDueDate",
+        "pastDueBalance",
+        "monthlyPayment",
+        "regularDefermentCount",
+        "paymentChoice"
+    ]
 }
 ```
 
@@ -558,8 +558,8 @@ An invalid manager decision returns:
 
 ```json
 {
-	"error": "Invalid manager decision request",
-	"requiredFields": ["status", "reason"]
+    "error": "Invalid manager decision request",
+    "requiredFields": ["status", "reason"]
 }
 ```
 
@@ -587,12 +587,12 @@ Set the simulated development identity in `wrangler.jsonc`:
 
 ```jsonc
 "access": {
-	"dev": {
-		"aud": "approval-api-local",
-		"identity": {
-			"email": "arichard@aeqira.com"
-		}
-	}
+    "dev": {
+        "aud": "approval-api-local",
+        "identity": {
+            "email": "arichard@aeqira.com"
+        }
+    }
 }
 ```
 
@@ -628,9 +628,9 @@ Expected manager response when the simulated development identity has an active 
 
 ```json
 {
-	"email": "arichard@aeqira.com",
-	"displayName": "Andrew Richard",
-	"role": "manager"
+    "email": "arichard@aeqira.com",
+    "displayName": "Andrew Richard",
+    "role": "manager"
 }
 ```
 
@@ -646,18 +646,18 @@ Then submit the request:
 
 ```bash
 curl -X POST http://localhost:5173/api/v1/approval \
-	-H "Content-Type: application/json" \
-	-d "{
-		\"memberNumber\": \"123456\",
-		\"pastDueDate\": \"$PAST_DUE_DATE\",
-		\"pastDueBalance\": 650,
-		\"monthlyPayment\": 300,
-		\"regularDefermentCount\": 1,
-		\"paymentChoice\": {
-			\"type\": \"minimum_plus_extra\",
-			\"extraAmount\": 100
-		}
-	}"
+    -H "Content-Type: application/json" \
+    -d "{
+        \"memberNumber\": \"123456\",
+        \"pastDueDate\": \"$PAST_DUE_DATE\",
+        \"pastDueBalance\": 650,
+        \"monthlyPayment\": 300,
+        \"regularDefermentCount\": 1,
+        \"paymentChoice\": {
+            \"type\": \"minimum_plus_extra\",
+            \"extraAmount\": 100
+        }
+    }"
 ```
 
 The response should include a generated `reviewId`.
@@ -674,18 +674,18 @@ Submit a request that requires manager review:
 
 ```bash
 curl -X POST http://localhost:5173/api/v1/approval \
-	-H "Content-Type: application/json" \
-	-d "{
-		\"memberNumber\": \"123456\",
-		\"pastDueDate\": \"$PAST_DUE_DATE\",
-		\"pastDueBalance\": 600,
-		\"monthlyPayment\": 300,
-		\"regularDefermentCount\": 0,
-		\"paymentChoice\": {
-			\"type\": \"minimum_plus_extra\",
-			\"extraAmount\": 100
-		}
-	}"
+    -H "Content-Type: application/json" \
+    -d "{
+        \"memberNumber\": \"123456\",
+        \"pastDueDate\": \"$PAST_DUE_DATE\",
+        \"pastDueBalance\": 600,
+        \"monthlyPayment\": 300,
+        \"regularDefermentCount\": 0,
+        \"paymentChoice\": {
+            \"type\": \"minimum_plus_extra\",
+            \"extraAmount\": 100
+        }
+    }"
 ```
 
 ### Test the manager queue
@@ -700,12 +700,12 @@ Replace `REVIEW_ID` with the review ID returned by the approval endpoint:
 
 ```bash
 curl -X PATCH \
-	http://localhost:5173/api/v1/manager/reviews/REVIEW_ID \
-	-H "Content-Type: application/json" \
-	-d '{
-		"status": "approved",
-		"reason": "Payment history supports approval."
-	}'
+    http://localhost:5173/api/v1/manager/reviews/REVIEW_ID \
+    -H "Content-Type: application/json" \
+    -d '{
+        "status": "approved",
+        "reason": "Payment history supports approval."
+    }'
 ```
 
 The authenticated-user header used in automated tests is intended only for tests. Production identity is supplied by Cloudflare Access.

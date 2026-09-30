@@ -1,27 +1,22 @@
 import { useEffect, useState } from "react";
 import { API_ROUTES } from "./config/api";
+import { getErrorMessage, readApiResponse } from "./functions/helpers";
 import { AppHeader } from "./components/AppHeader";
-import { DecisionPanel, type DecisionResult } from "./components/DecisionPanel";
-import { ReviewForm, type ReviewFormValues } from "./components/ReviewForm";
+import { DecisionPanel } from "./components/DecisionPanel";
+import { ReviewForm } from "./components/ReviewForm";
 import { ManagerQueue } from "./components/ManagerQueue";
 import { SubmissionsView } from "./components/SubmissionsView";
-import type { AppView } from "./types/approval";
-import type { UserRole } from "./services/user-storage";
-
-interface IdentityResponse {
-	email: string;
-	displayName: string;
-	role: UserRole;
-}
-
-interface ErrorResponse {
-	error: string;
-}
+import type {
+	AppView,
+	ApprovalResponse,
+	IdentityResponse,
+	ReviewFormValues,
+} from "./types/approval";
 
 export default function App() {
 	const [activeView, setActiveView] = useState<AppView>("new-review");
 	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [result, setResult] = useState<DecisionResult | null>(null);
+	const [result, setResult] = useState<ApprovalResponse | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [userDisplayName, setUserDisplayName] = useState("Loading...");
 	const [showManagerQueue, setShowManagerQueue] = useState(false);
@@ -35,15 +30,10 @@ export default function App() {
 					headers: { Accept: "application/json" },
 				});
 
-				const body = (await response.json()) as
-					| IdentityResponse
-					| ErrorResponse;
-
-				if (!response.ok || "error" in body) {
-					throw new Error(
-						"error" in body ? body.error : "Unable to load identity",
-					);
-				}
+				const body = await readApiResponse<IdentityResponse>(
+					response,
+					"Unable to load identity",
+				);
 
 				if (!cancelled) {
 					setUserDisplayName(body.displayName);
@@ -78,21 +68,14 @@ export default function App() {
 				body: JSON.stringify(values),
 			});
 
-			const body = (await response.json()) as DecisionResult | ErrorResponse;
-
-			if (!response.ok || "error" in body) {
-				throw new Error(
-					"error" in body ? body.error : "Could not complete request",
-				);
-			}
+			const body = await readApiResponse<ApprovalResponse>(
+				response,
+				"Could not complete request",
+			);
 
 			setResult(body);
 		} catch (caughtError) {
-			setError(
-				caughtError instanceof Error
-					? caughtError.message
-					: "Could not complete request",
-			);
+			setError(getErrorMessage(caughtError, "Could not complete request"));
 		} finally {
 			setIsSubmitting(false);
 		}

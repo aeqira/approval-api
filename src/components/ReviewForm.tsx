@@ -1,27 +1,5 @@
 import { useState, type FormEvent } from "react";
-
-export interface ReviewFormValues {
-	memberNumber: string;
-	pastDueDate: string;
-	pastDueBalance: number;
-	monthlyPayment: number;
-	regularDefermentCount: number;
-	paymentChoice:
-		| {
-				type: "minimum_plus_extra";
-				extraAmount: number;
-		  }
-		| {
-				type: "affordable_payment";
-				affordablePayment: number;
-		  };
-}
-
-interface ReviewFormProps {
-	isSubmitting: boolean;
-	onSubmit: (values: ReviewFormValues) => Promise<void>;
-	onClear: () => void;
-}
+import type { ReviewFormProps } from "../types/approval";
 
 export function ReviewForm({
 	isSubmitting,

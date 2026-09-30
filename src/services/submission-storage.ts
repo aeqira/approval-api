@@ -2,56 +2,11 @@ import { toDollars } from "../functions/helpers";
 import type {
 	ApprovalSubmission,
 	ApprovalSubmissionsResponse,
-	ApprovalStatus,
+	ListSubmissionsInput,
+	SubmissionCountRow,
+	SubmissionRow,
+	SubmissionSortField,
 } from "../types/approval";
-
-export type SubmissionSortField =
-	| "createdAt"
-	| "memberNumber"
-	| "status"
-	| "daysPastDue"
-	| "pastDueBalance"
-	| "numberOfPayments";
-
-export type SortDirection = "asc" | "desc";
-
-export interface ListSubmissionsInput {
-	search?: string;
-	status?: ApprovalStatus;
-	defermentApplied?: boolean;
-	dateFrom?: string;
-	dateTo?: string;
-	sortBy: SubmissionSortField;
-	sortDirection: SortDirection;
-	page: number;
-	pageSize: number;
-}
-
-interface SubmissionRow {
-	id: string;
-	member_number: string;
-	associate_email: string;
-	associate_display_name: string;
-	past_due_date: string;
-	days_past_due: number;
-	adjusted_days_past_due: number;
-	past_due_balance_cents: number;
-	adjusted_past_due_balance_cents: number;
-	monthly_payment_cents: number;
-	plan_payment_cents: number;
-	number_of_payments: number;
-	regular_deferment_applied: number;
-	deferment_months: number;
-	deferred_amount_cents: number;
-	initial_status: ApprovalStatus;
-	current_status: ApprovalStatus;
-	reasons_json: string;
-	manager_email: string | null;
-	manager_reason: string | null;
-	reviewed_at: string | null;
-	created_at: string;
-	account_comment: string;
-}
 
 const SORT_COLUMNS: Record<SubmissionSortField, string> = {
 	createdAt: "created_at",
@@ -120,7 +75,7 @@ export async function listSubmissions(
 			`,
 		)
 		.bind(...bindings)
-		.first<{ total: number }>();
+		.first<SubmissionCountRow>();
 
 	const total = countRow?.total ?? 0;
 	const offset = (input.page - 1) * input.pageSize;
@@ -158,7 +113,7 @@ export async function listSubmissions(
 					initial_status,
 					current_status,
 					reasons_json,
-                    COALESCE(final_account_comment, account_comment) AS account_comment,
+					COALESCE(final_account_comment, account_comment) AS account_comment,
 					manager_email,
 					manager_reason,
 					reviewed_at,
@@ -174,9 +129,9 @@ export async function listSubmissions(
 
 	const submissions: ApprovalSubmission[] = result.results.map((row) => ({
 		reviewId: row.id,
-			memberNumber: row.member_number,
-			associateEmail: row.associate_email,
-			associateDisplayName: row.associate_display_name,
+		memberNumber: row.member_number,
+		associateEmail: row.associate_email,
+		associateDisplayName: row.associate_display_name,
 		pastDueDate: row.past_due_date,
 		daysPastDue: row.days_past_due,
 		adjustedDaysPastDue: row.adjusted_days_past_due,

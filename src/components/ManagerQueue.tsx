@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { API_ROUTES } from "../config/api";
-import { formatCurrency } from "../functions/helpers";
+import {
+	formatCurrency,
+	getErrorMessage,
+	readApiResponse,
+} from "../functions/helpers";
 import { ManagerDecisionControls } from "./ManagerDecisionControls";
 import type { ManagerReview, ManagerReviewsResponse } from "../types/approval";
-
-interface ErrorResponse {
-	error: string;
-}
 
 export function ManagerQueue() {
 	const [reviews, setReviews] = useState<ManagerReview[]>([]);
@@ -33,22 +33,15 @@ export function ManagerQueue() {
 				},
 			});
 
-			const body = (await response.json()) as
-				| ManagerReviewsResponse
-				| ErrorResponse;
-
-			if (!response.ok || "error" in body) {
-				throw new Error(
-					"error" in body ? body.error : "Unable to load Manager Reviews",
-				);
-			}
+			const body = await readApiResponse<ManagerReviewsResponse>(
+				response,
+				"Unable to load Manager Reviews",
+			);
 
 			setReviews(body.reviews);
 		} catch (caughtError) {
 			setError(
-				caughtError instanceof Error
-					? caughtError.message
-					: "Unable to load Manager Reviews",
+				getErrorMessage(caughtError, "Unable to load Manager Reviews"),
 			);
 		} finally {
 			if (showLoading) {

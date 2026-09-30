@@ -1,46 +1,12 @@
 import { toCents, toDollars } from "../functions/helpers";
 import type {
-	ApprovalDecision,
-	ApprovalRequest,
 	ManagerDecisionResponse,
-	ManagerDecisionStatus,
 	ManagerReview,
+	ManagerReviewRow,
+	PendingReviewRow,
+	ResolveManagerReviewInput,
+	SaveApprovalReviewInput,
 } from "../types/approval";
-
-interface SaveApprovalReviewInput {
-	associateEmail: string;
-	request: ApprovalRequest;
-	decision: ApprovalDecision;
-}
-
-interface ManagerReviewRow {
-	id: string;
-	member_number: string;
-	associate_email: string;
-	associate_display_name: string;
-	past_due_date: string;
-	days_past_due: number;
-	adjusted_days_past_due: number;
-	past_due_balance_cents: number;
-	adjusted_past_due_balance_cents: number;
-	monthly_payment_cents: number;
-	plan_payment_cents: number;
-	number_of_payments: number;
-	regular_deferment_available: number;
-	regular_deferment_applied: number;
-	deferment_months: number;
-	deferred_amount_cents: number;
-	reasons_json: string;
-	created_at: string;
-}
-
-interface ResolveManagerReviewInput {
-	reviewId: string;
-	status: ManagerDecisionStatus;
-	managerEmail: string;
-	managerDisplayName: string;
-	managerReason: string;
-}
 
 export async function saveApprovalReview(
 	database: D1Database,
@@ -197,7 +163,7 @@ export async function resolveManagerReview(
 			`,
 		)
 		.bind(input.reviewId)
-		.first<{ account_comment: string }>();
+		.first<PendingReviewRow>();
 
 	if (!pendingReview) {
 		return null;

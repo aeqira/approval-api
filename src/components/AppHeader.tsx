@@ -1,11 +1,4 @@
-import type { AppView } from "../types/approval";
-
-interface AppHeaderProps {
-	activeView: AppView;
-	userDisplayName: string;
-	showManagerQueue: boolean;
-	onViewChange: (view: AppView) => void;
-}
+import type { AppHeaderProps } from "../types/approval";
 
 export function AppHeader({
 	activeView,

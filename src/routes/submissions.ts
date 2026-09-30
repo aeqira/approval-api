@@ -1,10 +1,10 @@
-import { jsonNoStore } from "../functions/helpers";
+import { jsonNoStore, parsePositiveInteger } from "../functions/helpers";
 import { listSubmissions } from "../services/submission-storage";
 import type {
+	ApprovalStatus,
 	SortDirection,
 	SubmissionSortField,
-} from "../services/submission-storage";
-import type { ApprovalStatus } from "../types/approval";
+} from "../types/approval";
 
 const STATUSES: ApprovalStatus[] = ["approved", "denied", "manager_review"];
 
@@ -18,19 +18,6 @@ const SORT_FIELDS: SubmissionSortField[] = [
 ];
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-
-function parsePositiveInteger(
-	value: string | null,
-	defaultValue: number,
-): number | null {
-	if (value === null) {
-		return defaultValue;
-	}
-
-	const parsedValue = Number(value);
-
-	return Number.isInteger(parsedValue) && parsedValue > 0 ? parsedValue : null;
-}
 
 export async function handleListSubmissions(
 	request: Request,

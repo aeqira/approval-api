@@ -1,13 +1,9 @@
-import { formatCurrency, getStatusLabel } from "../functions/helpers";
-import type { ApprovalResponse } from "../types/approval";
-
-export type DecisionResult = ApprovalResponse;
-
-interface DecisionPanelProps {
-	error: string | null;
-	isSubmitting: boolean;
-	result: DecisionResult | null;
-}
+import {
+	copyTextToClipboard,
+	formatCurrency,
+	getStatusLabel,
+} from "../functions/helpers";
+import type { DecisionPanelProps } from "../types/approval";
 
 export function DecisionPanel({
 	error,
@@ -19,7 +15,7 @@ export function DecisionPanel({
 			return;
 		}
 
-		await navigator.clipboard.writeText(result.accountComment);
+		await copyTextToClipboard(result.accountComment);
 	}
 
 	return (

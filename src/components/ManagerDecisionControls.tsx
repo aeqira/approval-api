@@ -1,18 +1,11 @@
 import { useState } from "react";
 import { API_ROUTES } from "../config/api";
+import { getErrorMessage, readApiResponse } from "../functions/helpers";
 import type {
+	ManagerDecisionControlProps,
 	ManagerDecisionResponse,
 	ManagerDecisionStatus,
 } from "../types/approval";
-
-interface ErrorResponse {
-	error: string;
-}
-
-interface ManagerDecisionControlProps {
-	reviewId: string;
-	onResolved: (decision: ManagerDecisionResponse) => void;
-}
 
 export function ManagerDecisionControls({
 	reviewId,
@@ -45,22 +38,15 @@ export function ManagerDecisionControls({
 				}),
 			});
 
-			const body = (await response.json()) as
-				| ManagerDecisionResponse
-				| ErrorResponse;
-
-			if (!response.ok || "error" in body) {
-				throw new Error(
-					"error" in body ? body.error : "Unable to save manager decision",
-				);
-			}
+			const body = await readApiResponse<ManagerDecisionResponse>(
+				response,
+				"Unable to save manager decision",
+			);
 
 			onResolved(body);
 		} catch (caughtError) {
 			setError(
-				caughtError instanceof Error
-					? caughtError.message
-					: "Unable to save manager decision",
+				getErrorMessage(caughtError, "Unable to save manager decision"),
 			);
 		} finally {
 			setIsSubmitting(false);

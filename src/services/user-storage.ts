@@ -1,16 +1,4 @@
-export type UserRole = "associate" | "manager";
-
-export interface AppUser {
-	email: string;
-	displayName: string | null;
-	role: UserRole;
-}
-
-interface UserRow {
-	email: string;
-	display_name: string | null;
-	role: UserRole;
-}
+import type { AppUser, UserRow } from "../types/approval";
 
 export async function findActiveUser(
 	database: D1Database,

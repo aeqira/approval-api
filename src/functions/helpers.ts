@@ -1,43 +1,51 @@
-import type { ApprovalResponse, PaymentChoice } from '../types/approval';
+import type {
+	ApiErrorResponse,
+	ApprovalStatus,
+	PaymentChoice,
+} from "../types/approval";
+
+const CURRENCY_FORMATTER = new Intl.NumberFormat("en-US", {
+	style: "currency",
+	currency: "USD",
+});
+
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export function formatCurrency(value: number): string {
-	return new Intl.NumberFormat('en-US', {
-		style: 'currency',
-		currency: 'USD',
-	}).format(value);
+	return CURRENCY_FORMATTER.format(value);
 }
 
-export function getStatusLabel(status: ApprovalResponse['status']): string {
-	if (status === 'manager_review') {
-		return 'Manager Review';
+export function getStatusLabel(status: ApprovalStatus): string {
+	if (status === "manager_review") {
+		return "Manager Review";
 	}
 
-	return status === 'approved' ? 'Approved' : 'Denied';
+	return status === "approved" ? "Approved" : "Denied";
 }
 
 export function jsonNoStore(body: unknown, status: number = 200): Response {
 	return Response.json(body, {
 		status,
 		headers: {
-			'Cache-Control': 'no-store',
+			"Cache-Control": "no-store",
 		},
 	});
 }
 
 export function isPositiveNumber(value: unknown): value is number {
-	return typeof value === 'number' && Number.isFinite(value) && value > 0;
+	return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
 
 export function isNonNegativeInteger(value: unknown): value is number {
-	return typeof value === 'number' && Number.isInteger(value) && value >= 0;
+	return typeof value === "number" && Number.isInteger(value) && value >= 0;
 }
 
 export function isNonEmptyString(value: unknown): value is string {
-	return typeof value === 'string' && value.trim().length > 0;
+	return typeof value === "string" && value.trim().length > 0;
 }
 
 export function isValidDate(value: unknown): value is string {
-	if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+	if (typeof value !== "string" || !DATE_PATTERN.test(value)) {
 		return false;
 	}
 
@@ -54,21 +62,84 @@ export function isValidDate(value: unknown): value is string {
 }
 
 export function isPaymentChoice(value: unknown): value is PaymentChoice {
-	if (typeof value !== 'object' || value === null) {
+	if (!isRecord(value)) {
 		return false;
 	}
 
-	const choice = value as Record<string, unknown>;
-
-	if (choice.type === 'minimum_plus_extra') {
-		return isPositiveNumber(choice.extraAmount);
+	if (value.type === "minimum_plus_extra") {
+		return isPositiveNumber(value.extraAmount);
 	}
 
-	if (choice.type === 'affordable_payment') {
-		return isPositiveNumber(choice.affordablePayment);
+	if (value.type === "affordable_payment") {
+		return isPositiveNumber(value.affordablePayment);
 	}
 
 	return false;
+}
+
+export function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
+export function isApiErrorResponse(value: unknown): value is ApiErrorResponse {
+	return isRecord(value) && typeof value.error === "string";
+}
+
+export async function readApiResponse<T>(
+	response: Response,
+	fallbackMessage: string,
+): Promise<T> {
+	let body: unknown;
+
+	try {
+		body = await response.json();
+	} catch {
+		throw new Error(fallbackMessage);
+	}
+
+	if (!response.ok || isApiErrorResponse(body)) {
+		throw new Error(isApiErrorResponse(body) ? body.error : fallbackMessage);
+	}
+
+	return body as T;
+}
+
+export function getErrorMessage(error: unknown, fallbackMessage: string): string {
+	return error instanceof Error ? error.message : fallbackMessage;
+}
+
+export async function copyTextToClipboard(value: string): Promise<void> {
+	await navigator.clipboard.writeText(value);
+}
+
+export function formatSubmittedAt(value: string): string {
+	const normalizedValue = value.includes("T")
+		? value
+		: `${value.replace(" ", "T")}Z`;
+	const date = new Date(normalizedValue);
+
+	return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+}
+
+export function splitOriginalComment(comment: string): string[] {
+	return comment
+		.split(/\.\s+(?=[A-Z])/)
+		.map((entry) => entry.trim())
+		.filter(Boolean)
+		.map((entry) => (entry.endsWith(".") ? entry : `${entry}.`));
+}
+
+export function parsePositiveInteger(
+	value: string | null,
+	defaultValue: number,
+): number | null {
+	if (value === null) {
+		return defaultValue;
+	}
+
+	const parsedValue = Number(value);
+
+	return Number.isInteger(parsedValue) && parsedValue > 0 ? parsedValue : null;
 }
 
 export function toCents(amount: number): number {

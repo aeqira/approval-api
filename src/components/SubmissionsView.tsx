@@ -1,27 +1,21 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { API_ROUTES } from "../config/api";
-import { formatCurrency, getStatusLabel } from "../functions/helpers";
+import {
+	copyTextToClipboard,
+	formatCurrency,
+	formatSubmittedAt,
+	getErrorMessage,
+	getStatusLabel,
+	readApiResponse,
+	splitOriginalComment,
+} from "../functions/helpers";
 import type {
 	ApprovalSubmission,
 	ApprovalSubmissionsResponse,
-	ApprovalStatus,
-} from "../types/approval";
-import type {
 	SortDirection,
+	SubmissionFilters,
 	SubmissionSortField,
-} from "../services/submission-storage";
-
-interface ErrorResponse {
-	error: string;
-}
-
-interface SubmissionFilters {
-	search: string;
-	status: "" | ApprovalStatus;
-	defermentApplied: "" | "true" | "false";
-	dateFrom: string;
-	dateTo: string;
-}
+} from "../types/approval";
 
 const EMPTY_FILTERS: SubmissionFilters = {
 	search: "",
@@ -30,24 +24,6 @@ const EMPTY_FILTERS: SubmissionFilters = {
 	dateFrom: "",
 	dateTo: "",
 };
-
-function formatSubmittedAt(value: string): string {
-	const normalizedValue = value.includes("T")
-		? value
-		: `${value.replace(" ", "T")}Z`;
-
-	const date = new Date(normalizedValue);
-
-	return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
-}
-
-function splitOriginalComment(comment: string): string[] {
-	return comment
-		.split(/\.\s+(?=[A-Z])/)
-		.map((entry) => entry.trim())
-		.filter(Boolean)
-		.map((entry) => (entry.endsWith(".") ? entry : `${entry}.`));
-}
 
 export function SubmissionsView() {
 	const [submissions, setSubmissions] = useState<ApprovalSubmission[]>([]);
@@ -102,25 +78,16 @@ export function SubmissionsView() {
 				},
 			});
 
-			const body = (await response.json()) as
-				| ApprovalSubmissionsResponse
-				| ErrorResponse;
-
-			if (!response.ok || "error" in body) {
-				throw new Error(
-					"error" in body ? body.error : "Unable to load submissions",
-				);
-			}
+			const body = await readApiResponse<ApprovalSubmissionsResponse>(
+				response,
+				"Unable to load submissions",
+			);
 
 			setSubmissions(body.submissions);
 			setTotal(body.total);
 			setTotalPages(body.totalPages);
 		} catch (caughtError) {
-			setError(
-				caughtError instanceof Error
-					? caughtError.message
-					: "Unable to load submissions",
-			);
+			setError(getErrorMessage(caughtError, "Unable to load submissions"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -171,7 +138,7 @@ export function SubmissionsView() {
 	}
 
 	async function copyAccountComment(comment: string) {
-		await navigator.clipboard.writeText(comment);
+		await copyTextToClipboard(comment);
 	}
 
 	return (
