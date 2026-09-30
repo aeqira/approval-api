@@ -241,14 +241,14 @@ describe("Manager Reviews API", () => {
 		const decision = (await response.json()) as ManagerDecisionResponse;
 
 		expect(decision).toEqual({
-				reviewId: approval.reviewId,
-				status: "approved",
-				managerEmail: "manager@aeqira.com",
-				managerDisplayName: "Test Manager",
-				managerReason: "Payment history supports approval.",
-				accountComment: `${approval.accountComment}\n\nManager decision: APPROVED.\nManager: Test Manager.\nManager decision reason: Payment history supports approval.`,
-				reviewedAt: expect.any(String),
-			});
+			reviewId: approval.reviewId,
+			status: "approved",
+			managerEmail: "manager@aeqira.com",
+			managerDisplayName: "Test Manager",
+			managerReason: "Payment history supports approval.",
+			accountComment: `${approval.accountComment}\n\nManager decision: APPROVED.\nManager: Test Manager.\nManager decision reason: Payment history supports approval.`,
+			reviewedAt: expect.any(String),
+		});
 
 		const storedReview = await env.approval_api_db
 			.prepare(

@@ -54,6 +54,14 @@ export function ManagerDecisionControls({
 					"error" in body ? body.error : "Unable to save manager decision",
 				);
 			}
+
+			onResolved(body);
+		} catch (caughtError) {
+			setError(
+				caughtError instanceof Error
+					? caughtError.message
+					: "Unable to save manager decision",
+			);
 		} finally {
 			setIsSubmitting(false);
 		}
