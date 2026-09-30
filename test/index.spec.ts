@@ -240,15 +240,13 @@ describe("Manager Reviews API", () => {
 
 		const decision = (await response.json()) as ManagerDecisionResponse;
 
-			expect(decision).toEqual({
+		expect(decision).toEqual({
 				reviewId: approval.reviewId,
 				status: "approved",
 				managerEmail: "manager@aeqira.com",
 				managerDisplayName: "Test Manager",
 				managerReason: "Payment history supports approval.",
-				accountComment: expect.stringContaining(
-					"Payment plan decision: APPROVED.",
-				),
+				accountComment: `${approval.accountComment} Manager decision: APPROVED. Manager: Test Manager. Manager decision reason: Payment history supports approval.`,
 				reviewedAt: expect.any(String),
 			});
 
@@ -279,9 +277,7 @@ describe("Manager Reviews API", () => {
 			current_status: "approved",
 			manager_email: "manager@aeqira.com",
 			manager_reason: "Payment history supports approval.",
-			final_account_comment: expect.stringContaining(
-				"Manager: Test Manager. Manager decision reason: Payment history supports approval.",
-			),
+			final_account_comment: `${approval.accountComment} Manager decision: APPROVED. Manager: Test Manager. Manager decision reason: Payment history supports approval.`,
 		});
 
 		const repeatedResponse = await SELF.fetch(
@@ -385,9 +381,7 @@ describe("Manager Reviews API", () => {
 			managerEmail: "manager@aeqira.com",
 			managerDisplayName: "Test Manager",
 			managerReason: "The proposed arrangement is not supportable.",
-			accountComment: expect.stringContaining(
-				"Payment plan decision: DENIED.",
-			),
+			accountComment: `${approval.accountComment} Manager decision: DENIED. Manager: Test Manager. Manager decision reason: The proposed arrangement is not supportable.`,
 			reviewedAt: expect.any(String),
 		});
 	});

@@ -205,16 +205,11 @@ export async function resolveManagerReview(
 
 	const reviewedAt = new Date().toISOString();
 	const statusLabel = input.status.toUpperCase();
-
-	const initialCommentWithoutStatus = pendingReview.account_comment.replace(
-		/^Payment plan decision: [^.]+\.\s*/,
-		"",
-	);
 	const managerReasonForComment = input.managerReason.replace(/\.+$/, "");
 
 	const accountComment = [
-		`Payment plan decision: ${statusLabel}.`,
-		initialCommentWithoutStatus,
+		pendingReview.account_comment.trim(),
+		`Manager decision: ${statusLabel}.`,
 		`Manager: ${input.managerDisplayName}.`,
 		`Manager decision reason: ${managerReasonForComment}.`,
 	].join(" ");
