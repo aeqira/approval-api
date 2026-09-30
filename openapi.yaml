@@ -411,7 +411,8 @@ paths:
       description: >
         Approves or denies a pending manager review while preserving the
         API's original decision. The final account comment preserves the
-        original API comment and appends the manager decision details.
+        original API comment and appends the manager decision details as a
+        separate log block after a blank line.
       parameters:
         - name: reviewId
           in: path
@@ -853,7 +854,8 @@ components:
           type: string
           description: >
             Final paste-ready account comment containing the complete original
-            API comment followed by the manager decision, manager name, and reason.
+            API comment followed by a blank line and a separate manager-decision
+            log block containing the decision, manager name, and reason.
         reviewedAt:
           type: string
           format: date-time

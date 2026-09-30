@@ -878,6 +878,7 @@ button:disabled {
 	color: #34445a;
 	font-size: 0.82rem;
 	line-height: 1.5;
+	white-space: pre-wrap;
 }
 
 @media (max-width: 900px) {

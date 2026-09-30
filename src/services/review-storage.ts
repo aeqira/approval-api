@@ -207,12 +207,16 @@ export async function resolveManagerReview(
 	const statusLabel = input.status.toUpperCase();
 	const managerReasonForComment = input.managerReason.replace(/\.+$/, "");
 
-	const accountComment = [
-		pendingReview.account_comment.trim(),
+	const managerComment = [
 		`Manager decision: ${statusLabel}.`,
 		`Manager: ${input.managerDisplayName}.`,
 		`Manager decision reason: ${managerReasonForComment}.`,
 	].join(" ");
+
+	const accountComment = [
+		pendingReview.account_comment.trim(),
+		managerComment,
+	].join("\n\n");
 
 	const result = await database
 		.prepare(
