@@ -1,4 +1,7 @@
 :root {
+	--content-max-width: 1600px;
+	--page-gutter: 20px;
+	--page-gutter-mobile: 12px;
 	font-family:
 		Inter,
 		ui-sans-serif,
@@ -25,7 +28,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
 	font: inherit;
 }
 
@@ -53,7 +57,10 @@ button:disabled {
 	align-items: center;
 	justify-content: space-between;
 	gap: 24px;
-	width: min(1180px, calc(100% - 40px));
+	width: min(
+		var(--content-max-width),
+		calc(100% - (var(--page-gutter) * 2))
+	);
 	margin: 0 auto;
 	padding: 24px 0 18px;
 }
@@ -73,7 +80,10 @@ button:disabled {
 .app-nav {
 	display: flex;
 	gap: 8px;
-	width: min(1180px, calc(100% - 40px));
+	width: min(
+		var(--content-max-width),
+		calc(100% - (var(--page-gutter) * 2))
+	);
 	margin: 0 auto;
 }
 
@@ -97,7 +107,10 @@ button:disabled {
 }
 
 .app-main {
-	width: min(1180px, calc(100% - 40px));
+	width: min(
+		var(--content-max-width),
+		calc(100% - (var(--page-gutter) * 2))
+	);
 	margin: 0 auto;
 	padding: 32px 0 48px;
 }
@@ -493,10 +506,6 @@ button:disabled {
 	overflow-wrap: anywhere;
 }
 
-.manager-review-card .decision-summary {
-	grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
 .manager-review-card .decision-reasons {
 	padding: 18px;
 	border: 1px solid #ead9ad;
@@ -589,6 +598,7 @@ button:disabled {
 	background: #942e39;
 	transform: translateY(-1px);
 }
+
 .manager-review-card .decision-summary > .manager-review-reasons {
 	border-color: #e2bd6f;
 	background: #fff8e7;
@@ -641,57 +651,264 @@ button:disabled {
 	grid-column: span 2;
 }
 
-@media (max-width: 800px) {
-	.manager-review-card .decision-summary {
+.submissions-view {
+	min-height: 520px;
+}
+
+.submissions-heading {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 20px;
+}
+
+.submission-count {
+	flex: 0 0 auto;
+	padding: 8px 12px;
+	border-radius: 999px;
+	color: #174f7f;
+	background: #eaf4fc;
+	font-size: 0.86rem;
+	font-weight: 800;
+}
+
+.submission-filters {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 16px;
+	padding: 22px 26px;
+	border-bottom: 1px solid #e4e9ef;
+	background: #f8fafc;
+}
+
+.submission-filters label {
+	display: grid;
+	gap: 7px;
+	color: #26364b;
+	font-size: 0.84rem;
+	font-weight: 700;
+}
+
+.submission-filters input,
+.submission-filters select {
+	width: 100%;
+	min-width: 0;
+	padding: 10px 11px;
+	border: 1px solid #bac5d2;
+	border-radius: 8px;
+	color: #172033;
+	background: #ffffff;
+	font: inherit;
+}
+
+.submission-filters input:focus,
+.submission-filters select:focus {
+	border-color: #2776ba;
+	outline: none;
+	box-shadow: 0 0 0 3px rgb(39 118 186 / 16%);
+}
+
+.submission-filters > label:first-child {
+	grid-column: span 2;
+}
+
+.submission-filter-actions {
+	display: flex;
+	grid-column: 1 / -1;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 10px;
+}
+
+.submission-filter-actions .primary-button,
+.submission-filter-actions .secondary-button {
+	flex: 0 0 auto;
+	width: auto;
+	min-width: 150px;
+	min-height: 42px;
+}
+
+.submission-table-wrapper {
+	overflow: visible;
+	padding: 24px 26px 0;
+}
+
+.submission-table {
+	width: 100%;
+	table-layout: fixed;
+	border-collapse: collapse;
+}
+
+.submission-table th,
+.submission-table td {
+	padding: 13px 12px;
+	border-bottom: 1px solid #e4e9ef;
+	text-align: left;
+	vertical-align: middle;
+}
+
+.submission-table th {
+	color: #657286;
+	background: #f8fafc;
+	font-size: 0.76rem;
+	font-weight: 800;
+	letter-spacing: 0.03em;
+	text-transform: uppercase;
+	white-space: nowrap;
+}
+
+.submission-table td {
+	color: #34445a;
+	font-size: 0.88rem;
+}
+
+.submission-table tbody tr:hover {
+	background: #f7fbff;
+}
+
+.submission-table .decision-status {
+	display: inline-block;
+	padding: 6px 9px;
+	font-size: 0.7rem;
+	white-space: nowrap;
+}
+
+.submission-pagination {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 18px;
+	padding: 22px 26px 26px;
+}
+
+.submission-pagination span {
+	color: #536176;
+	font-size: 0.9rem;
+	font-weight: 700;
+}
+
+.review-form-actions {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+	gap: 12px;
+}
+
+.review-form-actions .secondary-button,
+.review-form-actions .primary-button {
+	width: 100%;
+	min-height: 48px;
+}
+
+.submission-table th,
+.submission-table td {
+	overflow-wrap: anywhere;
+	word-break: normal;
+}
+
+.submission-table th {
+	line-height: 1.25;
+	white-space: normal;
+}
+
+.submission-table th:nth-child(1) {
+	width: 11%;
+}
+
+.submission-table th:nth-child(2) {
+	width: 10%;
+}
+
+.submission-table th:nth-child(3) {
+	width: 15%;
+}
+
+.submission-table th:nth-child(4) {
+	width: 13%;
+}
+
+.submission-table th:nth-child(5) {
+	width: 12%;
+}
+
+.submission-table th:nth-child(6) {
+	width: 10%;
+}
+
+.submission-table th:nth-child(7) {
+	width: 7%;
+}
+
+.submission-table th:nth-child(8) {
+	width: 10%;
+}
+
+.submission-table th:nth-child(9) {
+	width: 12%;
+}
+
+.submission-table td:nth-child(3) {
+	font-size: 0.82rem;
+}
+
+.submission-table td .decision-status {
+	max-width: 100%;
+	text-align: center;
+	white-space: normal;
+}
+
+.submission-comment summary {
+	color: #174f7f;
+	font-weight: 700;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.submission-comment-content {
+	display: grid;
+	gap: 12px;
+	margin-top: 10px;
+	padding: 12px;
+	border: 1px solid #cbd9e6;
+	border-radius: 8px;
+	background: #f1f7fc;
+}
+
+.submission-comment-content p {
+	margin: 0;
+	color: #34445a;
+	font-size: 0.82rem;
+	line-height: 1.5;
+}
+
+@media (max-width: 900px) {
+	.submission-filters {
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
-
-	.manager-review-reasons,
-	.manager-decision-card {
-		grid-column: span 1;
-	}
 }
 
 @media (max-width: 520px) {
-	.manager-review-card .decision-summary {
-		grid-template-columns: 1fr;
-	}
-
-	.manager-review-reasons,
-	.manager-decision-card {
-		grid-column: span 1;
-	}
-}
-
-@media (max-width: 520px) {
-	.manager-decision-actions {
+	.submissions-heading {
+		align-items: flex-start;
 		flex-direction: column;
 	}
-}
 
-@media (max-width: 800px) {
-	.manager-review-card .decision-summary {
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+	.submission-filters {
+		grid-template-columns: 1fr;
+		padding: 20px;
 	}
-}
 
-@media (max-width: 520px) {
-	.manager-queue-heading,
-	.manager-review-heading {
+	.submission-filter-actions {
 		align-items: stretch;
 		flex-direction: column;
 	}
 
-	.manager-review-list {
+	.submission-table-wrapper {
+		padding: 20px 20px 0;
+	}
+
+	.submission-pagination {
+		gap: 10px;
 		padding: 20px;
-	}
-
-	.manager-review-card {
-		padding: 18px;
-	}
-
-	.manager-review-card .decision-summary {
-		grid-template-columns: 1fr;
 	}
 }
 
@@ -709,13 +926,25 @@ button:disabled {
 	.result-panel {
 		min-height: 400px;
 	}
+
+	.manager-review-card .decision-summary {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.manager-review-reasons,
+	.manager-decision-card {
+		grid-column: span 1;
+	}
 }
 
 @media (max-width: 520px) {
 	.app-header-top,
 	.app-nav,
 	.app-main {
-		width: min(100% - 24px, 1180px);
+		width: min(
+			var(--content-max-width),
+			calc(100% - (var(--page-gutter-mobile) * 2))
+		);
 	}
 
 	.app-main {
@@ -737,12 +966,66 @@ button:disabled {
 		padding: 20px;
 	}
 
-	.decision-summary {
+	.decision-summary,
+	.review-form-actions,
+	.manager-review-card .decision-summary {
 		grid-template-columns: 1fr;
 	}
 
-	.account-comment-heading {
+	.account-comment-heading,
+	.manager-queue-heading,
+	.manager-review-heading {
 		align-items: stretch;
 		flex-direction: column;
+	}
+
+	.manager-review-reasons,
+	.manager-decision-card {
+		grid-column: span 1;
+	}
+
+	.manager-decision-actions {
+		flex-direction: column;
+	}
+
+	.manager-review-list {
+		padding: 20px;
+	}
+
+	.manager-review-card {
+		padding: 18px;
+	}
+
+	.submissions-heading {
+		align-items: flex-start;
+		flex-direction: column;
+	}
+
+	.submission-filters {
+		grid-template-columns: 1fr;
+		padding: 20px;
+	}
+
+	.submission-filters > label:first-child {
+		grid-column: span 1;
+	}
+
+	.submission-filter-actions {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.submission-filter-actions .primary-button,
+	.submission-filter-actions .secondary-button {
+		width: 100%;
+	}
+
+	.submission-table-wrapper {
+		padding: 20px 20px 0;
+	}
+
+	.submission-pagination {
+		gap: 10px;
+		padding: 20px;
 	}
 }

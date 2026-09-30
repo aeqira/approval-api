@@ -10,11 +10,13 @@ The application:
 - Determines whether a regular deferment is available.
 - Generates a paste-ready account comment.
 - Records every review in Cloudflare D1.
-- Captures and displays the authenticated user’s email address.
+- Captures the authenticated user’s email address and displays their configured name.
 - Provides a database-authorized manager review queue.
 - Allows managers to approve or deny pending reviews.
 - Preserves the API’s original decision and the manager’s final decision.
 - Refreshes the manager queue automatically.
+- Provides searchable, sortable, paginated submission history to all employees.
+- Lets employees clear the review form and current result in one action.
 - Supports minimum-plus-extra and affordable-payment proposals.
 
 ## Production
@@ -34,22 +36,22 @@ The following features are implemented:
 - Cloudflare Access identity capture
 - Authenticated-user identity display
 - Associate email storage
+- User display-name storage and display
 - D1 approval-review storage
 - Paste-ready account comments
 - Database-backed manager authorization
 - Manager review queue
 - Manager approval and denial actions
 - Automatic manager queue refresh
+- All-submissions history with filters, sorting, and expandable account comments
+- Final paste-ready comments for manager decisions
+- Clear-form action
 - Original and final decision preservation
 - Local D1 migration testing
 - OpenAPI documentation
 - Automated decision, identity, authorization, and manager-action tests
 
-The following features are planned but not yet implemented:
-
-- User administration interface
-- Completed-review history and search
-- Manager decision reporting
+The user administration interface and manager decision reporting remain outside the current scope.
 
 ## API endpoints
 
@@ -74,7 +76,7 @@ Response:
 GET /api/v1/identity
 ```
 
-Returns the authenticated user’s normalized email address and application role.
+Returns the authenticated user’s normalized email address, display name, and application role.
 
 Users are treated as associates by default. An authenticated user receives the `manager` role only when their email has an active manager record in the `users` table.
 
@@ -83,6 +85,7 @@ Associate response:
 ```json
 {
 	"email": "associate@aeqira.com",
+	"displayName": "associate@aeqira.com",
 	"role": "associate"
 }
 ```
@@ -92,6 +95,7 @@ Manager response:
 ```json
 {
 	"email": "arichard@aeqira.com",
+	"displayName": "Andrew Richard",
 	"role": "manager"
 }
 ```
@@ -114,6 +118,29 @@ The endpoint requires an authenticated identity. In production, the identity is 
 
 Every valid decision is saved in D1 before the response is returned.
 
+### List all submissions
+
+```text
+GET /api/v1/submissions
+```
+
+All authenticated employees can view submission history so they can assist one another. The endpoint supports:
+
+- Search by member number, employee name, or employee email
+- Status and deferment filters
+- From and to dates
+- Sorting by submission date, member, status, adjusted delinquency, adjusted balance, or payment count
+- Ascending or descending order
+- Pagination with a maximum page size of 100
+
+Example:
+
+```text
+GET /api/v1/submissions?search=Andrew&status=approved&sortBy=createdAt&sortDirection=desc&page=1&pageSize=25
+```
+
+The response includes each submission’s original and current status, calculated plan details, employee name, and the current paste-ready account comment.
+
 ### List pending manager reviews
 
 ```text
@@ -135,14 +162,20 @@ Example response:
 			"reviewId": "72b708ee-957b-466f-9cd6-fd3e09aca998",
 			"memberNumber": "123456",
 			"associateEmail": "associate@aeqira.com",
+			"associateDisplayName": "Associate Name",
 			"pastDueDate": "2026-08-15",
 			"daysPastDue": 45,
+			"adjustedDaysPastDue": 45,
 			"pastDueBalance": 600,
+			"adjustedPastDueBalance": 600,
 			"monthlyPayment": 300,
 			"planPayment": 400,
 			"numberOfPayments": 6,
-			"regularDefermentAvailable": true,
-			"reasons": ["The loan is between 31 and 89 days past due."],
+			"regularDefermentAvailable": false,
+			"regularDefermentApplied": false,
+			"defermentMonths": 0,
+			"deferredAmount": 0,
+			"reasons": ["The loan remains between 31 and 89 days delinquent after deferment."],
 			"createdAt": "2026-09-29 10:11:22"
 		}
 	]
@@ -184,7 +217,9 @@ Example response:
 	"reviewId": "72b708ee-957b-466f-9cd6-fd3e09aca998",
 	"status": "approved",
 	"managerEmail": "arichard@aeqira.com",
+	"managerDisplayName": "Andrew Richard",
 	"managerReason": "Payment history supports approval.",
+	"accountComment": "Payment plan decision: APPROVED. Member number: 123456. Manager: Andrew Richard. Manager decision reason: Payment history supports approval.",
 	"reviewedAt": "2026-09-29T11:30:00.000Z"
 }
 ```
@@ -222,7 +257,7 @@ Example request:
 	"pastDueDate": "2026-09-09",
 	"pastDueBalance": 650,
 	"monthlyPayment": 300,
-	"regularDefermentCount": 1,
+	"regularDefermentCount": 2,
 	"paymentChoice": {
 		"type": "minimum_plus_extra",
 		"extraAmount": 100
@@ -258,7 +293,7 @@ Example request:
 	"pastDueDate": "2026-09-09",
 	"pastDueBalance": 650,
 	"monthlyPayment": 300,
-	"regularDefermentCount": 1,
+	"regularDefermentCount": 2,
 	"paymentChoice": {
 		"type": "affordable_payment",
 		"affordablePayment": 400
@@ -293,13 +328,18 @@ Example:
 	"reviewId": "72b708ee-957b-466f-9cd6-fd3e09aca998",
 	"status": "approved",
 	"daysPastDue": 20,
+	"adjustedDaysPastDue": 20,
+	"adjustedPastDueBalance": 650,
 	"planPayment": 400,
 	"catchUpAmount": 100,
 	"numberOfPayments": 7,
 	"finalPayment": 350,
-	"regularDefermentAvailable": true,
+	"regularDefermentAvailable": false,
+	"regularDefermentApplied": false,
+	"defermentMonths": 0,
+	"deferredAmount": 0,
 	"reasons": ["All automatic approval criteria were met."],
-	"accountComment": "Payment plan decision: APPROVED. Member number: 123456. Past due date: 2026-09-09. Days past due: 20. Plan payment: 400.00. Number of payments: 7. Final payment: 350.00. Regular deferment: available. Reason: All automatic approval criteria were met."
+	"accountComment": "Payment plan decision: APPROVED. Member number: 123456. Due date: 2026-09-09. Original days delinquent: 20. Adjusted days delinquent: 20. Original delinquent balance: $650.00. Adjusted delinquent balance: $650.00. Regular deferment not available. Plan payment: $400.00. Payment count: 7. Final payment: $350.00. Decision reason: All automatic approval criteria were met."
 }
 ```
 
@@ -310,11 +350,16 @@ Example:
 | `reviewId`                  | string       | Unique identifier for the saved approval review             |
 | `status`                    | string       | `approved`, `manager_review`, or `denied`                   |
 | `daysPastDue`               | integer      | Calculated number of calendar days past due                 |
+| `adjustedDaysPastDue`       | integer      | Days delinquent remaining after any deferment               |
+| `adjustedPastDueBalance`    | number       | Delinquent balance remaining after any deferment            |
 | `planPayment`               | number       | Normal payment amount during the plan                       |
 | `catchUpAmount`             | number       | Amount applied toward the past-due balance per payment      |
 | `numberOfPayments`          | integer      | Calculated number of payments required                      |
 | `finalPayment`              | number       | Reduced final payment when the remaining balance is smaller |
 | `regularDefermentAvailable` | boolean      | Whether a regular deferment can still be offered            |
+| `regularDefermentApplied`   | boolean      | Whether the three-month regular deferment was applied       |
+| `defermentMonths`           | integer      | Number of months deferred: `0` or `3`                       |
+| `deferredAmount`            | number       | Amount removed from delinquency by the deferment            |
 | `reasons`                   | string array | Reasons supporting the decision                             |
 | `accountComment`            | string       | Paste-ready servicing-system comment                        |
 
@@ -357,9 +402,9 @@ A regular deferment is available when:
 regular deferment count < 2
 ```
 
-When two or more regular deferments have already been used, `regularDefermentAvailable` is `false`.
+When a deferment is available, the API applies it before evaluating the plan. It removes up to three regular monthly payments from the delinquent balance and subtracts 90 days from the delinquency, with both adjusted values floored at zero.
 
-Deferment history does not approve, deny, or escalate a payment plan. It only determines whether a regular deferment can be offered.
+If the deferment brings both adjusted delinquency and adjusted balance to zero, the request is automatically approved for deferment only. When two or more regular deferments have already been used, `regularDefermentAvailable` is `false` and no deferment is applied.
 
 Emergency deferments are not evaluated or offered.
 
@@ -382,6 +427,7 @@ The stored record includes:
 - Review ID
 - Member number
 - Associate email
+- Associate display name resolved from the users table
 - Past-due date
 - Calculated days past due
 - Past-due balance
@@ -391,6 +437,7 @@ The stored record includes:
 - Calculated plan details
 - Decision reasons
 - Account comment
+- Final account comment after manager action
 - Regular-deferment availability
 - Manager email
 - Manager decision reason
@@ -410,6 +457,7 @@ Application roles are stored in the `users` D1 table.
 The table contains:
 
 - Email address
+- Display name
 - Role
 - Active status
 - Creation timestamp
@@ -422,7 +470,7 @@ associate
 manager
 ```
 
-Authenticated users are treated as associates unless an active user record grants them the manager role.
+Authenticated users are treated as associates unless an active user record grants them the manager role. When no display name is stored, the interface falls back to the user’s email address.
 
 Manager API endpoints verify the authenticated email against the `users` table on every request. Hiding the Manager Queue in the frontend is not the security boundary; manager authorization is enforced by the Worker.
 
@@ -581,6 +629,7 @@ Expected manager response when the simulated development identity has an active 
 ```json
 {
 	"email": "arichard@aeqira.com",
+	"displayName": "Andrew Richard",
 	"role": "manager"
 }
 ```

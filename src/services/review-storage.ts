@@ -17,6 +17,7 @@ interface ManagerReviewRow {
 	id: string;
 	member_number: string;
 	associate_email: string;
+	associate_display_name: string;
 	past_due_date: string;
 	days_past_due: number;
 	adjusted_days_past_due: number;
@@ -37,6 +38,7 @@ interface ResolveManagerReviewInput {
 	reviewId: string;
 	status: ManagerDecisionStatus;
 	managerEmail: string;
+	managerDisplayName: string;
 	managerReason: string;
 }
 
@@ -127,6 +129,16 @@ export async function listPendingManagerReviews(
 					id,
 					member_number,
 					associate_email,
+					COALESCE(
+						(
+							SELECT users.display_name
+							FROM users
+							WHERE users.email = approval_reviews.associate_email COLLATE NOCASE
+								AND users.active = 1
+							LIMIT 1
+						),
+						associate_email
+					) AS associate_display_name,
 					past_due_date,
 					days_past_due,
 					adjusted_days_past_due,
@@ -153,6 +165,7 @@ export async function listPendingManagerReviews(
 		reviewId: row.id,
 		memberNumber: row.member_number,
 		associateEmail: row.associate_email,
+		associateDisplayName: row.associate_display_name,
 		pastDueDate: row.past_due_date,
 		daysPastDue: row.days_past_due,
 		adjustedDaysPastDue: row.adjusted_days_past_due,
@@ -174,7 +187,37 @@ export async function resolveManagerReview(
 	database: D1Database,
 	input: ResolveManagerReviewInput,
 ): Promise<ManagerDecisionResponse | null> {
+	const pendingReview = await database
+		.prepare(
+			`
+				SELECT account_comment
+				FROM approval_reviews
+				WHERE id = ?
+					AND current_status = 'manager_review'
+			`,
+		)
+		.bind(input.reviewId)
+		.first<{ account_comment: string }>();
+
+	if (!pendingReview) {
+		return null;
+	}
+
 	const reviewedAt = new Date().toISOString();
+	const statusLabel = input.status.toUpperCase();
+
+	const initialCommentWithoutStatus = pendingReview.account_comment.replace(
+		/^Payment plan decision: [^.]+\.\s*/,
+		"",
+	);
+	const managerReasonForComment = input.managerReason.replace(/\.+$/, "");
+
+	const accountComment = [
+		`Payment plan decision: ${statusLabel}.`,
+		initialCommentWithoutStatus,
+		`Manager: ${input.managerDisplayName}.`,
+		`Manager decision reason: ${managerReasonForComment}.`,
+	].join(" ");
 
 	const result = await database
 		.prepare(
@@ -184,6 +227,7 @@ export async function resolveManagerReview(
 					current_status = ?,
 					manager_email = ?,
 					manager_reason = ?,
+					final_account_comment = ?,
 					reviewed_at = ?,
 					updated_at = ?
 				WHERE id = ?
@@ -194,6 +238,7 @@ export async function resolveManagerReview(
 			input.status,
 			input.managerEmail,
 			input.managerReason,
+			accountComment,
 			reviewedAt,
 			reviewedAt,
 			input.reviewId,
@@ -208,7 +253,9 @@ export async function resolveManagerReview(
 		reviewId: input.reviewId,
 		status: input.status,
 		managerEmail: input.managerEmail,
+		managerDisplayName: input.managerDisplayName,
 		managerReason: input.managerReason,
+		accountComment,
 		reviewedAt,
 	};
 }

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from "react";
 
 export interface ReviewFormValues {
 	memberNumber: string;
@@ -8,11 +8,11 @@ export interface ReviewFormValues {
 	regularDefermentCount: number;
 	paymentChoice:
 		| {
-				type: 'minimum_plus_extra';
+				type: "minimum_plus_extra";
 				extraAmount: number;
 		  }
 		| {
-				type: 'affordable_payment';
+				type: "affordable_payment";
 				affordablePayment: number;
 		  };
 }
@@ -20,22 +20,29 @@ export interface ReviewFormValues {
 interface ReviewFormProps {
 	isSubmitting: boolean;
 	onSubmit: (values: ReviewFormValues) => Promise<void>;
+	onClear: () => void;
 }
 
-export function ReviewForm({ isSubmitting, onSubmit }: ReviewFormProps) {
-	const [memberNumber, setMemberNumber] = useState('');
-	const [pastDueDate, setPastDueDate] = useState('');
-	const [pastDueBalance, setPastDueBalance] = useState('');
-	const [monthlyPayment, setMonthlyPayment] = useState('');
-	const [regularDefermentCount, setRegularDefermentCount] = useState('0');
-	const [paymentType, setPaymentType] = useState<'minimum_plus_extra' | 'affordable_payment'>('minimum_plus_extra');
-	const [paymentAmount, setPaymentAmount] = useState('');
+export function ReviewForm({
+	isSubmitting,
+	onSubmit,
+	onClear,
+}: ReviewFormProps) {
+	const [memberNumber, setMemberNumber] = useState("");
+	const [pastDueDate, setPastDueDate] = useState("");
+	const [pastDueBalance, setPastDueBalance] = useState("");
+	const [monthlyPayment, setMonthlyPayment] = useState("");
+	const [regularDefermentCount, setRegularDefermentCount] = useState("0");
+	const [paymentType, setPaymentType] = useState<
+		"minimum_plus_extra" | "affordable_payment"
+	>("minimum_plus_extra");
+	const [paymentAmount, setPaymentAmount] = useState("");
 
 	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 
 		const paymentChoice =
-			paymentType === 'minimum_plus_extra'
+			paymentType === "minimum_plus_extra"
 				? {
 						type: paymentType,
 						extraAmount: Number(paymentAmount),
@@ -55,22 +62,46 @@ export function ReviewForm({ isSubmitting, onSubmit }: ReviewFormProps) {
 		});
 	}
 
+	function handleClear() {
+		setMemberNumber("");
+		setPastDueDate("");
+		setPastDueBalance("");
+		setMonthlyPayment("");
+		setRegularDefermentCount("0");
+		setPaymentType("minimum_plus_extra");
+		setPaymentAmount("");
+		onClear();
+	}
+
 	return (
 		<section className="workspace-panel">
 			<div className="panel-heading">
 				<h2>Loan Information</h2>
-				<p>Enter the account details and select a payment option to evaluate a plan</p>
+				<p>
+					Enter the account details and select a payment option to evaluate a
+					plan
+				</p>
 			</div>
 
 			<form className="review-form" onSubmit={handleSubmit}>
 				<label className="form-field">
 					<span>Member Number</span>
-					<input required autoComplete="off" value={memberNumber} onChange={(event) => setMemberNumber(event.target.value)} />
+					<input
+						required
+						autoComplete="off"
+						value={memberNumber}
+						onChange={(event) => setMemberNumber(event.target.value)}
+					/>
 				</label>
 
 				<label className="form-field">
 					<span>Past Due Date</span>
-					<input required type="date" value={pastDueDate} onChange={(event) => setPastDueDate(event.target.value)} />
+					<input
+						required
+						type="date"
+						value={pastDueDate}
+						onChange={(event) => setPastDueDate(event.target.value)}
+					/>
 				</label>
 
 				<label className="form-field">
@@ -120,27 +151,31 @@ export function ReviewForm({ isSubmitting, onSubmit }: ReviewFormProps) {
 
 					<label className="choice-option">
 						<input
-							checked={paymentType === 'minimum_plus_extra'}
+							checked={paymentType === "minimum_plus_extra"}
 							name="paymentType"
 							type="radio"
-							onChange={() => setPaymentType('minimum_plus_extra')}
+							onChange={() => setPaymentType("minimum_plus_extra")}
 						/>
 						<span>Minimum Plus Extra</span>
 					</label>
 
 					<label className="choice-option">
 						<input
-							checked={paymentType === 'affordable_payment'}
+							checked={paymentType === "affordable_payment"}
 							name="paymentType"
 							type="radio"
-							onChange={() => setPaymentType('affordable_payment')}
+							onChange={() => setPaymentType("affordable_payment")}
 						/>
 						<span>Affordable Payment</span>
 					</label>
 				</fieldset>
 
 				<label className="form-field">
-					<span>{paymentType === 'minimum_plus_extra' ? 'Extra Amount' : 'Affordable Payment'}</span>
+					<span>
+						{paymentType === "minimum_plus_extra"
+							? "Extra Amount"
+							: "Affordable Payment"}
+					</span>
 
 					<div className="money-input">
 						<span aria-hidden="true">$</span>
@@ -155,9 +190,24 @@ export function ReviewForm({ isSubmitting, onSubmit }: ReviewFormProps) {
 					</div>
 				</label>
 
-				<button className="primary-button" disabled={isSubmitting} type="submit">
-					{isSubmitting ? 'Evaluating...' : 'Evaluate Plan'}
-				</button>
+				<div className="review-form-actions">
+					<button
+						className="secondary-button"
+						disabled={isSubmitting}
+						type="button"
+						onClick={handleClear}
+					>
+						Clear Form
+					</button>
+
+					<button
+						className="primary-button"
+						disabled={isSubmitting}
+						type="submit"
+					>
+						{isSubmitting ? "Evaluating..." : "Evaluate Plan"}
+					</button>
+				</div>
 			</form>
 		</section>
 	);

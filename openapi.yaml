@@ -2,7 +2,7 @@ openapi: 3.1.0
 
 info:
   title: Approval API
-  version: 1.2.0
+  version: 1.3.0
   description: >
     Evaluates payment-plan proposals for delinquent loans. When a regular
     deferment is available, the API applies a three-month deferment before
@@ -26,6 +26,8 @@ tags:
     description: Payment-plan calculation and decision operations.
   - name: Managers
     description: Manager-review queue and decision operations.
+  - name: Submissions
+    description: Searchable payment-plan submission history for employees.
 
 paths:
   /api/v1/health:
@@ -249,6 +251,111 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /api/v1/submissions:
+    get:
+      tags:
+        - Submissions
+      summary: List payment-plan submissions
+      operationId: listSubmissions
+      description: >
+        Returns paginated submission history for authenticated employees.
+        Results can be searched by member number, employee display name, or
+        employee email address.
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+            maxLength: 100
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [approved, denied, manager_review]
+        - name: defermentApplied
+          in: query
+          schema:
+            type: boolean
+        - name: dateFrom
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: dateTo
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            default: createdAt
+            enum:
+              - createdAt
+              - memberNumber
+              - status
+              - daysPastDue
+              - pastDueBalance
+              - numberOfPayments
+        - name: sortDirection
+          in: query
+          schema:
+            type: string
+            default: desc
+            enum: [asc, desc]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 25
+      responses:
+        "200":
+          description: Paginated submission history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApprovalSubmissionsResponse"
+        "400":
+          description: Invalid filter, sort, or pagination value
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: An authenticated identity was not available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Access denied by Cloudflare Access
+        "405":
+          description: Method not allowed
+          headers:
+            Allow:
+              schema:
+                type: string
+                const: GET
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Submission history could not be loaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /api/v1/manager/reviews:
     get:
       tags:
@@ -408,6 +515,7 @@ components:
       additionalProperties: false
       required:
         - email
+        - displayName
         - role
       properties:
         email:
@@ -416,6 +524,11 @@ components:
           description: Authenticated user email address.
           examples:
             - associate@aeqira.com
+        displayName:
+          type: string
+          description: User name from the active users record, or the email address as a fallback.
+          examples:
+            - Andrew Richard
         role:
           type: string
           enum:
@@ -604,6 +717,7 @@ components:
         - reviewId
         - memberNumber
         - associateEmail
+        - associateDisplayName
         - pastDueDate
         - daysPastDue
         - adjustedDaysPastDue
@@ -627,6 +741,9 @@ components:
         associateEmail:
           type: string
           format: email
+        associateDisplayName:
+          type: string
+          description: Employee name from the users table, or their email as a fallback.
         pastDueDate:
           type: string
           format: date
@@ -711,7 +828,9 @@ components:
         - reviewId
         - status
         - managerEmail
+        - managerDisplayName
         - managerReason
+        - accountComment
         - reviewedAt
       properties:
         reviewId:
@@ -725,11 +844,144 @@ components:
         managerEmail:
           type: string
           format: email
+        managerDisplayName:
+          type: string
         managerReason:
           type: string
+        accountComment:
+          type: string
+          description: Final paste-ready account comment containing the manager decision.
         reviewedAt:
           type: string
           format: date-time
+
+    ApprovalSubmission:
+      type: object
+      additionalProperties: false
+      required:
+        - reviewId
+        - memberNumber
+        - associateEmail
+        - associateDisplayName
+        - pastDueDate
+        - daysPastDue
+        - adjustedDaysPastDue
+        - pastDueBalance
+        - adjustedPastDueBalance
+        - monthlyPayment
+        - planPayment
+        - numberOfPayments
+        - regularDefermentApplied
+        - defermentMonths
+        - deferredAmount
+        - initialStatus
+        - currentStatus
+        - reasons
+        - managerEmail
+        - managerReason
+        - reviewedAt
+        - createdAt
+        - accountComment
+      properties:
+        reviewId:
+          type: string
+          format: uuid
+        memberNumber:
+          type: string
+        associateEmail:
+          type: string
+          format: email
+        associateDisplayName:
+          type: string
+        pastDueDate:
+          type: string
+          format: date
+        daysPastDue:
+          type: integer
+          minimum: 0
+        adjustedDaysPastDue:
+          type: integer
+          minimum: 0
+        pastDueBalance:
+          type: number
+          minimum: 0
+        adjustedPastDueBalance:
+          type: number
+          minimum: 0
+        monthlyPayment:
+          type: number
+          minimum: 0
+        planPayment:
+          type: number
+          minimum: 0
+        numberOfPayments:
+          type: integer
+          minimum: 0
+        regularDefermentApplied:
+          type: boolean
+        defermentMonths:
+          type: integer
+          enum: [0, 3]
+        deferredAmount:
+          type: number
+          minimum: 0
+        initialStatus:
+          type: string
+          enum: [approved, denied, manager_review]
+        currentStatus:
+          type: string
+          enum: [approved, denied, manager_review]
+        reasons:
+          type: array
+          items:
+            type: string
+        managerEmail:
+          oneOf:
+            - type: string
+              format: email
+            - type: "null"
+        managerReason:
+          oneOf:
+            - type: string
+            - type: "null"
+        reviewedAt:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: "null"
+        createdAt:
+          type: string
+          description: D1 creation timestamp.
+        accountComment:
+          type: string
+
+    ApprovalSubmissionsResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - submissions
+        - total
+        - page
+        - pageSize
+        - totalPages
+      properties:
+        submissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ApprovalSubmission"
+        total:
+          type: integer
+          minimum: 0
+        page:
+          type: integer
+          minimum: 1
+        pageSize:
+          type: integer
+          minimum: 1
+          maximum: 100
+        totalPages:
+          type: integer
+          minimum: 1
 
     ErrorResponse:
       type: object

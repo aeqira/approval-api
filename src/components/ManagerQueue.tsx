@@ -114,7 +114,7 @@ export function ManagerQueue() {
 							<div className="manager-review-heading">
 								<div>
 									<h3>Member {review.memberNumber}</h3>
-									<p>{review.associateEmail}</p>
+									<p>{review.associateDisplayName}</p>
 								</div>
 
 								<span className="decision-status decision-status--manager-review">

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { API_ROUTES } from "../src/config/api";
 import type {
 	ApprovalResponse,
+	ApprovalSubmissionsResponse,
 	ManagerDecisionResponse,
 	ManagerReviewsResponse,
 } from "../src/types/approval";
@@ -18,14 +19,17 @@ function getDateDaysAgo(days: number): string {
 
 const defaultPastDueDate = getDateDaysAgo(20);
 
-async function submitApproval(body: Record<string, unknown>) {
+async function submitApproval(
+	body: Record<string, unknown>,
+	associateEmail = "associate@aeqira.com",
+) {
 	return SELF.fetch(
 		new URL(API_ROUTES.approval, "https://example.com").toString(),
 		{
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				"CF-Access-Authenticated-User-Email": "associate@aeqira.com",
+				"CF-Access-Authenticated-User-Email": associateEmail,
 			},
 			body: JSON.stringify({
 				memberNumber: "123456",
@@ -57,6 +61,7 @@ describe("Identity API", () => {
 		expect(response.headers.get("Cache-Control")).toBe("no-store");
 		expect(await response.json()).toEqual({
 			email: "associate@aeqira.com",
+			displayName: "associate@aeqira.com",
 			role: "associate",
 		});
 	});
@@ -79,12 +84,13 @@ describe("Identity API", () => {
 				`
 					INSERT INTO users (
 						email,
+						display_name,
 						role
 					)
-					VALUES (?, ?)
+					VALUES (?, ?, ?)
 				`,
 			)
-			.bind("manager@aeqira.com", "manager")
+			.bind("manager@aeqira.com", "Test Manager", "manager")
 			.run();
 
 		const response = await SELF.fetch(
@@ -99,6 +105,7 @@ describe("Identity API", () => {
 		expect(response.status).toBe(200);
 		expect(await response.json()).toEqual({
 			email: "manager@aeqira.com",
+			displayName: "Test Manager",
 			role: "manager",
 		});
 	});
@@ -128,13 +135,14 @@ describe("Manager Reviews API", () => {
 				`
 					INSERT OR REPLACE INTO users (
 						email,
+						display_name,
 						role,
 						active
 					)
-					VALUES (?, ?, ?)
+					VALUES (?, ?, ?, ?)
 				`,
 			)
-			.bind("manager@aeqira.com", "manager", 1)
+			.bind("manager@aeqira.com", "Test Manager", "manager", 1)
 			.run();
 
 		const approvalResponse = await submitApproval({
@@ -172,6 +180,7 @@ describe("Manager Reviews API", () => {
 					reviewId: approval.reviewId,
 					memberNumber: "123456",
 					associateEmail: "associate@aeqira.com",
+					associateDisplayName: "associate@aeqira.com",
 					daysPastDue: 45,
 					numberOfPayments: 6,
 				}),
@@ -185,13 +194,14 @@ describe("Manager Reviews API", () => {
 				`
 					INSERT OR REPLACE INTO users (
 						email,
+						display_name,
 						role,
 						active
 					)
-					VALUES (?, ?, ?)
+					VALUES (?, ?, ?, ?)
 				`,
 			)
-			.bind("manager@aeqira.com", "manager", 1)
+			.bind("manager@aeqira.com", "Test Manager", "manager", 1)
 			.run();
 
 		const approvalResponse = await submitApproval({
@@ -230,13 +240,17 @@ describe("Manager Reviews API", () => {
 
 		const decision = (await response.json()) as ManagerDecisionResponse;
 
-		expect(decision).toEqual({
-			reviewId: approval.reviewId,
-			status: "approved",
-			managerEmail: "manager@aeqira.com",
-			managerReason: "Payment history supports approval.",
-			reviewedAt: expect.any(String),
-		});
+			expect(decision).toEqual({
+				reviewId: approval.reviewId,
+				status: "approved",
+				managerEmail: "manager@aeqira.com",
+				managerDisplayName: "Test Manager",
+				managerReason: "Payment history supports approval.",
+				accountComment: expect.stringContaining(
+					"Payment plan decision: APPROVED.",
+				),
+				reviewedAt: expect.any(String),
+			});
 
 		const storedReview = await env.approval_api_db
 			.prepare(
@@ -245,7 +259,8 @@ describe("Manager Reviews API", () => {
 						initial_status,
 						current_status,
 						manager_email,
-						manager_reason
+						manager_reason,
+						final_account_comment
 					FROM approval_reviews
 					WHERE id = ?
 				`,
@@ -256,6 +271,7 @@ describe("Manager Reviews API", () => {
 				current_status: string;
 				manager_email: string;
 				manager_reason: string;
+				final_account_comment: string;
 			}>();
 
 		expect(storedReview).toEqual({
@@ -263,6 +279,9 @@ describe("Manager Reviews API", () => {
 			current_status: "approved",
 			manager_email: "manager@aeqira.com",
 			manager_reason: "Payment history supports approval.",
+			final_account_comment: expect.stringContaining(
+				"Manager: Test Manager. Manager decision reason: Payment history supports approval.",
+			),
 		});
 
 		const repeatedResponse = await SELF.fetch(
@@ -295,13 +314,14 @@ describe("Manager Reviews API", () => {
 				`
 					INSERT OR REPLACE INTO users (
 						email,
+						display_name,
 						role,
 						active
 					)
-					VALUES (?, ?, ?)
+					VALUES (?, ?, ?, ?)
 				`,
 			)
-			.bind("manager@aeqira.com", "manager", 1)
+			.bind("manager@aeqira.com", "Test Manager", "manager", 1)
 			.run();
 
 		const approvalResponse = await submitApproval({
@@ -363,7 +383,11 @@ describe("Manager Reviews API", () => {
 			reviewId: approval.reviewId,
 			status: "denied",
 			managerEmail: "manager@aeqira.com",
+			managerDisplayName: "Test Manager",
 			managerReason: "The proposed arrangement is not supportable.",
+			accountComment: expect.stringContaining(
+				"Payment plan decision: DENIED.",
+			),
 			reviewedAt: expect.any(String),
 		});
 	});
@@ -514,5 +538,84 @@ describe("Approval API", () => {
 		expect(result.reasons).toContain(
 			"The proposed payment must exceed the regular monthly payment.",
 		);
+	});
+});
+
+describe("Submissions API", () => {
+	it("allows an authenticated associate to search submission history", async () => {
+		const historyAssociateEmail = "history-associate@aeqira.com";
+
+		await env.approval_api_db
+			.prepare(
+				`
+					INSERT OR REPLACE INTO users (
+						email,
+						display_name,
+						role,
+						active
+					)
+					VALUES (?, ?, ?, ?)
+				`,
+			)
+			.bind(
+				historyAssociateEmail,
+				"Test Associate",
+				"associate",
+				1,
+			)
+			.run();
+
+		const approvalResponse = await submitApproval(
+			{
+				memberNumber: "HISTORY-TEST-001",
+				pastDueBalance: 600,
+				monthlyPayment: 300,
+				regularDefermentCount: 0,
+				paymentChoice: {
+					type: "minimum_plus_extra",
+					extraAmount: 100,
+				},
+			},
+			historyAssociateEmail,
+		);
+
+		expect(approvalResponse.status).toBe(200);
+
+		const url = new URL(API_ROUTES.submissions, "https://example.com");
+
+		url.searchParams.set("search", "Test Associate");
+		url.searchParams.set("status", "approved");
+		url.searchParams.set("defermentApplied", "true");
+		url.searchParams.set("sortBy", "createdAt");
+		url.searchParams.set("sortDirection", "desc");
+		url.searchParams.set("page", "1");
+		url.searchParams.set("pageSize", "10");
+
+		const response = await SELF.fetch(url.toString(), {
+			headers: {
+				"CF-Access-Authenticated-User-Email": historyAssociateEmail,
+			},
+		});
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get("Cache-Control")).toBe("no-store");
+
+		const result = (await response.json()) as ApprovalSubmissionsResponse;
+
+		expect(result.total).toBe(1);
+		expect(result.page).toBe(1);
+		expect(result.pageSize).toBe(10);
+		expect(result.totalPages).toBe(1);
+		expect(result.submissions).toEqual([
+				expect.objectContaining({
+					memberNumber: "HISTORY-TEST-001",
+					associateEmail: historyAssociateEmail,
+					associateDisplayName: "Test Associate",
+				currentStatus: "approved",
+				regularDefermentApplied: true,
+				defermentMonths: 3,
+				deferredAmount: 600,
+			}),
+		]);
 	});
 });

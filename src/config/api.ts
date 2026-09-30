@@ -7,4 +7,5 @@ export const API_ROUTES = {
 	managerReview: (reviewId: string) =>
 		`${API_BASE_URL}/manager/reviews/${encodeURIComponent(reviewId)}`,
 	managerReviews: `${API_BASE_URL}/manager/reviews`,
+	submissions: `${API_BASE_URL}/submissions`,
 } as const;

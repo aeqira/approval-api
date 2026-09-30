@@ -8,6 +8,7 @@ import {
 	resolveManagerReview,
 } from "./services/review-storage";
 import { findActiveUser, isManager } from "./services/user-storage";
+import { handleListSubmissions } from "./routes/submissions";
 
 const MANAGER_REVIEW_PREFIX = `${API_ROUTES.managerReviews}/`;
 
@@ -44,8 +45,25 @@ export default {
 
 			return jsonNoStore({
 				email: storedUser?.email ?? associateEmail,
+				displayName:
+					storedUser?.displayName ?? storedUser?.email ?? associateEmail,
 				role: storedUser?.role ?? "associate",
 			});
+		}
+
+		if (request.method === "GET" && url.pathname === API_ROUTES.submissions) {
+			const employeeEmail = await getAuthenticatedEmail(request, ctx);
+
+			if (!employeeEmail) {
+				return jsonNoStore(
+					{
+						error: "Authentication required",
+					},
+					401,
+				);
+			}
+
+			return handleListSubmissions(request, env.approval_api_db);
 		}
 
 		if (
@@ -162,6 +180,7 @@ export default {
 					reviewId,
 					status: body.status,
 					managerEmail: manager.email,
+					managerDisplayName: manager.displayName ?? manager.email,
 					managerReason: body.reason.trim(),
 				});
 
@@ -217,6 +236,21 @@ export default {
 					status: 405,
 					headers: {
 						Allow: "POST",
+						"Cache-Control": "no-store",
+					},
+				},
+			);
+		}
+
+		if (url.pathname === API_ROUTES.submissions) {
+			return Response.json(
+				{
+					error: "Method not allowed",
+				},
+				{
+					status: 405,
+					headers: {
+						Allow: "GET",
 						"Cache-Control": "no-store",
 					},
 				},

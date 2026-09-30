@@ -4,11 +4,13 @@ import { AppHeader } from "./components/AppHeader";
 import { DecisionPanel, type DecisionResult } from "./components/DecisionPanel";
 import { ReviewForm, type ReviewFormValues } from "./components/ReviewForm";
 import { ManagerQueue } from "./components/ManagerQueue";
+import { SubmissionsView } from "./components/SubmissionsView";
 import type { AppView } from "./types/approval";
 import type { UserRole } from "./services/user-storage";
 
 interface IdentityResponse {
 	email: string;
+	displayName: string;
 	role: UserRole;
 }
 
@@ -21,7 +23,7 @@ export default function App() {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [result, setResult] = useState<DecisionResult | null>(null);
 	const [error, setError] = useState<string | null>(null);
-	const [userEmail, setUserEmail] = useState("Loading...");
+	const [userDisplayName, setUserDisplayName] = useState("Loading...");
 	const [showManagerQueue, setShowManagerQueue] = useState(false);
 
 	useEffect(() => {
@@ -44,12 +46,12 @@ export default function App() {
 				}
 
 				if (!cancelled) {
-					setUserEmail(body.email);
+					setUserDisplayName(body.displayName);
 					setShowManagerQueue(body.role === "manager");
 				}
 			} catch {
 				if (!cancelled) {
-					setUserEmail("Identity unavailable");
+					setUserDisplayName("Identity unavailable");
 					setShowManagerQueue(false);
 				}
 			}
@@ -96,11 +98,16 @@ export default function App() {
 		}
 	}
 
+	function clearReview() {
+		setResult(null);
+		setError(null);
+	}
+
 	return (
 		<div className="app-shell">
 			<AppHeader
 				activeView={activeView}
-				userEmail={userEmail}
+				userDisplayName={userDisplayName}
 				showManagerQueue={showManagerQueue}
 				onViewChange={setActiveView}
 			/>
@@ -108,7 +115,11 @@ export default function App() {
 			<main className="app-main">
 				{activeView === "new-review" && (
 					<div className="review-workspace">
-						<ReviewForm isSubmitting={isSubmitting} onSubmit={evaluatePlan} />
+						<ReviewForm
+							isSubmitting={isSubmitting}
+							onClear={clearReview}
+							onSubmit={evaluatePlan}
+						/>
 						<DecisionPanel
 							error={error}
 							isSubmitting={isSubmitting}
@@ -117,6 +128,7 @@ export default function App() {
 					</div>
 				)}
 
+				{activeView === "submissions" && <SubmissionsView />}
 				{activeView === "manager-queue" && showManagerQueue && <ManagerQueue />}
 			</main>
 		</div>
