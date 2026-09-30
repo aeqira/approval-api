@@ -1,5 +1,5 @@
-import { formatCurrency, getStatusLabel } from '../functions/helpers';
-import type { ApprovalResponse } from '../types/approval';
+import { formatCurrency, getStatusLabel } from "../functions/helpers";
+import type { ApprovalResponse } from "../types/approval";
 
 export type DecisionResult = ApprovalResponse;
 
@@ -9,7 +9,11 @@ interface DecisionPanelProps {
 	result: DecisionResult | null;
 }
 
-export function DecisionPanel({ error, isSubmitting, result }: DecisionPanelProps) {
+export function DecisionPanel({
+	error,
+	isSubmitting,
+	result,
+}: DecisionPanelProps) {
 	async function copyAccountComment() {
 		if (!result?.accountComment) {
 			return;
@@ -45,7 +49,10 @@ export function DecisionPanel({ error, isSubmitting, result }: DecisionPanelProp
 					</div>
 
 					<h3>No Result Yet</h3>
-					<p>Complete the loan information and select a payment option, then choose Evaluate Plan</p>
+					<p>
+						Complete the loan information and select a payment option, then
+						choose Evaluate Plan
+					</p>
 
 					<div className="result-includes">
 						<h4>The result will include:</h4>
@@ -62,16 +69,30 @@ export function DecisionPanel({ error, isSubmitting, result }: DecisionPanelProp
 
 			{!isSubmitting && !error && result && (
 				<div className="decision-result">
-					<div className={`decision-status decision-status--${result.status.replaceAll('_', '-')}`}>{getStatusLabel(result.status)}</div>
+					<div
+						className={`decision-status decision-status--${result.status.replaceAll("_", "-")}`}
+					>
+						{getStatusLabel(result.status)}
+					</div>
 
 					<dl className="decision-summary">
+						<div>
+							<dt>Adjusted Days Delinquent</dt>
+							<dd>{result.adjustedDaysPastDue}</dd>
+						</div>
+
+						<div>
+							<dt>Adjusted Delinquent Balance</dt>
+							<dd>{formatCurrency(result.adjustedPastDueBalance)}</dd>
+						</div>
+
 						<div>
 							<dt>Plan Payment</dt>
 							<dd>{formatCurrency(result.planPayment)}</dd>
 						</div>
 
 						<div>
-							<dt>Number of Payments</dt>
+							<dt>Payment Count</dt>
 							<dd>{result.numberOfPayments}</dd>
 						</div>
 
@@ -82,7 +103,11 @@ export function DecisionPanel({ error, isSubmitting, result }: DecisionPanelProp
 
 						<div>
 							<dt>Regular Deferment</dt>
-							<dd>{result.regularDefermentAvailable ? 'Available' : 'Not Available'}</dd>
+							<dd>
+								{result.regularDefermentApplied
+									? `${result.defermentMonths} months — ${formatCurrency(result.deferredAmount)}`
+									: "Not Available"}
+							</dd>
 						</div>
 					</dl>
 
@@ -100,7 +125,11 @@ export function DecisionPanel({ error, isSubmitting, result }: DecisionPanelProp
 							<div className="account-comment-heading">
 								<h3>Account Comment</h3>
 
-								<button className="secondary-button" type="button" onClick={copyAccountComment}>
+								<button
+									className="secondary-button"
+									type="button"
+									onClick={copyAccountComment}
+								>
 									Copy Comment
 								</button>
 							</div>

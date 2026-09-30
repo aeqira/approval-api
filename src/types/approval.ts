@@ -24,11 +24,16 @@ export type ApprovalStatus = "approved" | "denied" | "manager_review";
 export interface ApprovalDecision {
 	status: ApprovalStatus;
 	daysPastDue: number;
+	adjustedDaysPastDue: number;
+	adjustedPastDueBalance: number;
 	planPayment: number;
 	catchUpAmount: number;
 	numberOfPayments: number;
 	finalPayment: number;
 	regularDefermentAvailable: boolean;
+	regularDefermentApplied: boolean;
+	defermentMonths: number;
+	deferredAmount: number;
 	reasons: string[];
 	accountComment: string;
 }
@@ -43,11 +48,16 @@ export interface ManagerReview {
 	associateEmail: string;
 	pastDueDate: string;
 	daysPastDue: number;
+	adjustedDaysPastDue: number;
 	pastDueBalance: number;
+	adjustedPastDueBalance: number;
 	monthlyPayment: number;
 	planPayment: number;
 	numberOfPayments: number;
 	regularDefermentAvailable: boolean;
+	regularDefermentApplied: boolean;
+	defermentMonths: number;
+	deferredAmount: number;
 	reasons: string[];
 	createdAt: string;
 }

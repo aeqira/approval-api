@@ -19,11 +19,16 @@ interface ManagerReviewRow {
 	associate_email: string;
 	past_due_date: string;
 	days_past_due: number;
+	adjusted_days_past_due: number;
 	past_due_balance_cents: number;
+	adjusted_past_due_balance_cents: number;
 	monthly_payment_cents: number;
 	plan_payment_cents: number;
 	number_of_payments: number;
 	regular_deferment_available: number;
+	regular_deferment_applied: number;
+	deferment_months: number;
+	deferred_amount_cents: number;
 	reasons_json: string;
 	created_at: string;
 }
@@ -45,6 +50,7 @@ export async function saveApprovalReview(
 		input.request.paymentChoice.type === "minimum_plus_extra"
 			? input.request.paymentChoice.extraAmount
 			: input.request.paymentChoice.affordablePayment;
+
 	await database
 		.prepare(
 			`
@@ -54,7 +60,9 @@ export async function saveApprovalReview(
 					associate_email,
 					past_due_date,
 					days_past_due,
+					adjusted_days_past_due,
 					past_due_balance_cents,
+					adjusted_past_due_balance_cents,
 					monthly_payment_cents,
 					regular_deferment_count,
 					payment_choice_type,
@@ -66,12 +74,15 @@ export async function saveApprovalReview(
 					number_of_payments,
 					final_payment_cents,
 					regular_deferment_available,
+					regular_deferment_applied,
+					deferment_months,
+					deferred_amount_cents,
 					reasons_json,
 					account_comment
 				)
 				VALUES (
-					?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-					?, ?, ?, ?, ?, ?, ?, ?, ?
+					?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+					?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 				)
 			`,
 		)
@@ -81,7 +92,9 @@ export async function saveApprovalReview(
 			input.associateEmail,
 			input.request.pastDueDate,
 			input.decision.daysPastDue,
+			input.decision.adjustedDaysPastDue,
 			toCents(input.request.pastDueBalance),
+			toCents(input.decision.adjustedPastDueBalance),
 			toCents(input.request.monthlyPayment),
 			input.request.regularDefermentCount,
 			input.request.paymentChoice.type,
@@ -93,6 +106,9 @@ export async function saveApprovalReview(
 			input.decision.numberOfPayments,
 			toCents(input.decision.finalPayment),
 			input.decision.regularDefermentAvailable ? 1 : 0,
+			input.decision.regularDefermentApplied ? 1 : 0,
+			input.decision.defermentMonths,
+			toCents(input.decision.deferredAmount),
 			JSON.stringify(input.decision.reasons),
 			input.decision.accountComment,
 		)
@@ -113,11 +129,16 @@ export async function listPendingManagerReviews(
 					associate_email,
 					past_due_date,
 					days_past_due,
+					adjusted_days_past_due,
 					past_due_balance_cents,
+					adjusted_past_due_balance_cents,
 					monthly_payment_cents,
 					plan_payment_cents,
 					number_of_payments,
 					regular_deferment_available,
+					regular_deferment_applied,
+					deferment_months,
+					deferred_amount_cents,
 					reasons_json,
 					created_at
 				FROM approval_reviews
@@ -134,11 +155,16 @@ export async function listPendingManagerReviews(
 		associateEmail: row.associate_email,
 		pastDueDate: row.past_due_date,
 		daysPastDue: row.days_past_due,
+		adjustedDaysPastDue: row.adjusted_days_past_due,
 		pastDueBalance: toDollars(row.past_due_balance_cents),
+		adjustedPastDueBalance: toDollars(row.adjusted_past_due_balance_cents),
 		monthlyPayment: toDollars(row.monthly_payment_cents),
 		planPayment: toDollars(row.plan_payment_cents),
 		numberOfPayments: row.number_of_payments,
 		regularDefermentAvailable: row.regular_deferment_available === 1,
+		regularDefermentApplied: row.regular_deferment_applied === 1,
+		defermentMonths: row.deferment_months,
+		deferredAmount: toDollars(row.deferred_amount_cents),
 		reasons: JSON.parse(row.reasons_json) as string[],
 		createdAt: row.created_at,
 	}));

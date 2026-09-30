@@ -15,6 +15,7 @@ function getDateDaysAgo(days: number): string {
 async function getDecision(
 	daysPastDue: number,
 	pastDueBalance: number,
+	regularDefermentCount = 2,
 ): Promise<ApprovalResponse> {
 	const response = await SELF.fetch(
 		new URL(API_ROUTES.approval, "https://example.com").toString(),
@@ -29,7 +30,7 @@ async function getDecision(
 				pastDueDate: getDateDaysAgo(daysPastDue),
 				pastDueBalance,
 				monthlyPayment: 300,
-				regularDefermentCount: 0,
+				regularDefermentCount,
 				paymentChoice: {
 					type: "minimum_plus_extra",
 					extraAmount: 100,
@@ -69,4 +70,63 @@ describe("payment-count boundaries", () => {
 			expect(result.status).toBe(expectedStatus);
 		},
 	);
+});
+
+describe("three-month regular deferment", () => {
+	it("auto-approves a deferment-only result when it clears the delinquency", async () => {
+		const result = await getDecision(45, 600, 0);
+
+		expect(result).toMatchObject({
+			status: "approved",
+			daysPastDue: 45,
+			adjustedDaysPastDue: 0,
+			adjustedPastDueBalance: 0,
+			planPayment: 300,
+			catchUpAmount: 0,
+			numberOfPayments: 0,
+			finalPayment: 300,
+			regularDefermentAvailable: true,
+			regularDefermentApplied: true,
+			defermentMonths: 3,
+			deferredAmount: 600,
+		});
+
+		expect(result.reasons).toContain(
+			"Approved for 3-month deferment only; no payment plan is required.",
+		);
+	});
+
+	it("calculates a payment plan from the balance remaining after deferment", async () => {
+		const result = await getDecision(120, 1200, 1);
+
+		expect(result).toMatchObject({
+			status: "approved",
+			daysPastDue: 120,
+			adjustedDaysPastDue: 30,
+			adjustedPastDueBalance: 300,
+			planPayment: 400,
+			catchUpAmount: 100,
+			numberOfPayments: 3,
+			finalPayment: 400,
+			regularDefermentAvailable: true,
+			regularDefermentApplied: true,
+			defermentMonths: 3,
+			deferredAmount: 900,
+		});
+	});
+
+	it("does not apply a deferment after two regular deferments were used", async () => {
+		const result = await getDecision(90, 600, 2);
+
+		expect(result).toMatchObject({
+			status: "denied",
+			daysPastDue: 90,
+			adjustedDaysPastDue: 90,
+			adjustedPastDueBalance: 600,
+			regularDefermentAvailable: false,
+			regularDefermentApplied: false,
+			defermentMonths: 0,
+			deferredAmount: 0,
+		});
+	});
 });

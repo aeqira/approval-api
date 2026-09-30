@@ -141,7 +141,7 @@ describe("Manager Reviews API", () => {
 			pastDueDate: getDateDaysAgo(45),
 			pastDueBalance: 600,
 			monthlyPayment: 300,
-			regularDefermentCount: 0,
+			regularDefermentCount: 2,
 			paymentChoice: {
 				type: "minimum_plus_extra",
 				extraAmount: 100,
@@ -198,7 +198,7 @@ describe("Manager Reviews API", () => {
 			pastDueDate: getDateDaysAgo(45),
 			pastDueBalance: 600,
 			monthlyPayment: 300,
-			regularDefermentCount: 0,
+			regularDefermentCount: 2,
 			paymentChoice: {
 				type: "minimum_plus_extra",
 				extraAmount: 100,
@@ -308,7 +308,7 @@ describe("Manager Reviews API", () => {
 			pastDueDate: getDateDaysAgo(45),
 			pastDueBalance: 600,
 			monthlyPayment: 300,
-			regularDefermentCount: 0,
+			regularDefermentCount: 2,
 			paymentChoice: {
 				type: "minimum_plus_extra",
 				extraAmount: 100,
@@ -380,7 +380,7 @@ describe("Approval API", () => {
 			pastDueDate: tomorrow.toISOString().slice(0, 10),
 			pastDueBalance: 600,
 			monthlyPayment: 300,
-			regularDefermentCount: 0,
+			regularDefermentCount: 2,
 			paymentChoice: {
 				type: "minimum_plus_extra",
 				extraAmount: 100,
@@ -421,13 +421,22 @@ describe("Approval API", () => {
 			reviewId: expect.any(String),
 			status: "approved",
 			daysPastDue: 20,
-			planPayment: 400,
-			catchUpAmount: 100,
-			numberOfPayments: 6,
-			finalPayment: 400,
+			adjustedDaysPastDue: 0,
+			adjustedPastDueBalance: 0,
+			planPayment: 300,
+			catchUpAmount: 0,
+			numberOfPayments: 0,
+			finalPayment: 300,
 			regularDefermentAvailable: true,
-			reasons: ["All automatic approval criteria were met."],
-			accountComment: `Payment plan decision: APPROVED. Member number: 123456. Past due date: ${defaultPastDueDate}. Days past due: 20. Plan payment: 400.00. Number of payments: 6. Final payment: 400.00. Regular deferment: available. Reason: All automatic approval criteria were met.`,
+			regularDefermentApplied: true,
+			defermentMonths: 3,
+			deferredAmount: 600,
+			reasons: [
+				"Approved for 3-month deferment only; no payment plan is required.",
+			],
+			accountComment: expect.stringContaining(
+				"Regular deferment applied for 3 months; $600.00 deferred.",
+			),
 		});
 	});
 
@@ -448,7 +457,7 @@ describe("Approval API", () => {
 		expect(result.status).toBe("manager_review");
 		expect(result.regularDefermentAvailable).toBe(false);
 		expect(result.reasons).toContain(
-			"The loan is between 31 and 89 days past due.",
+			"The loan remains between 31 and 89 days delinquent after deferment.",
 		);
 	});
 
@@ -456,7 +465,7 @@ describe("Approval API", () => {
 		const response = await submitApproval({
 			pastDueBalance: 1300,
 			monthlyPayment: 300,
-			regularDefermentCount: 0,
+			regularDefermentCount: 2,
 			paymentChoice: {
 				type: "minimum_plus_extra",
 				extraAmount: 100,
@@ -473,7 +482,7 @@ describe("Approval API", () => {
 		const response = await submitApproval({
 			pastDueBalance: 1900,
 			monthlyPayment: 300,
-			regularDefermentCount: 0,
+			regularDefermentCount: 2,
 			paymentChoice: {
 				type: "minimum_plus_extra",
 				extraAmount: 100,
@@ -492,7 +501,7 @@ describe("Approval API", () => {
 		const response = await submitApproval({
 			pastDueBalance: 600,
 			monthlyPayment: 300,
-			regularDefermentCount: 0,
+			regularDefermentCount: 2,
 			paymentChoice: {
 				type: "affordable_payment",
 				affordablePayment: 300,

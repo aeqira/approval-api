@@ -124,13 +124,13 @@ export function ManagerQueue() {
 
 							<dl className="decision-summary">
 								<div>
-									<dt>Days Past Due</dt>
-									<dd>{review.daysPastDue}</dd>
+									<dt>Adjusted Days Delinquent</dt>
+									<dd>{review.adjustedDaysPastDue}</dd>
 								</div>
 
 								<div>
-									<dt>Delinquent Balance</dt>
-									<dd>{formatCurrency(review.pastDueBalance)}</dd>
+									<dt>Adjusted Delinquent Balance</dt>
+									<dd>{formatCurrency(review.adjustedPastDueBalance)}</dd>
 								</div>
 
 								<div>
@@ -146,6 +146,12 @@ export function ManagerQueue() {
 								<div className="manager-review-reasons">
 									<dt>Review Reasons</dt>
 									<dd>
+										{review.regularDefermentApplied && (
+											<p>
+												{review.defermentMonths}-month deferment applied:{" "}
+												{formatCurrency(review.deferredAmount)}
+											</p>
+										)}
 										<ul>
 											{review.reasons.map((reason) => (
 												<li key={reason}>{reason}</li>

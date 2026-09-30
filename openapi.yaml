@@ -2,11 +2,12 @@ openapi: 3.1.0
 
 info:
   title: Approval API
-  version: 1.1.0
+  version: 1.2.0
   description: >
-    Evaluates payment-plan proposals for past-due loans.
-    Days past due are calculated from the supplied past-due date.
-    Production access is protected by Cloudflare Access.
+    Evaluates payment-plan proposals for delinquent loans. When a regular
+    deferment is available, the API applies a three-month deferment before
+    evaluating the remaining balance and delinquency. Production access is
+    protected by Cloudflare Access.
   license:
     name: Proprietary
     identifier: LicenseRef-Proprietary
@@ -23,6 +24,8 @@ tags:
     description: API availability and health information.
   - name: Approvals
     description: Payment-plan calculation and decision operations.
+  - name: Managers
+    description: Manager-review queue and decision operations.
 
 paths:
   /api/v1/health:
@@ -45,17 +48,17 @@ paths:
     get:
       tags:
         - Approvals
-      summary: Get the authenticated associate identity
+      summary: Get the authenticated user
       operationId: getIdentity
       responses:
         "200":
-          description: Authenticated associate identity
+          description: Authenticated user identity and role
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/IdentityResponse"
         "401":
-          description: An authenticated associate identity was not available
+          description: An authenticated identity was not available
           content:
             application/json:
               schema:
@@ -70,10 +73,12 @@ paths:
       summary: Evaluate a payment-plan proposal
       operationId: evaluateApproval
       description: >
-        Calculates days past due and the proposed payment plan,
-        saves the resulting review, and returns approved, denied,
-        or manager_review. Hard-denial conditions take precedence
-        over manager-review conditions.
+        Calculates the original delinquency, applies an available three-month
+        regular deferment, evaluates the adjusted delinquency, saves the
+        decision, and returns approved, denied, or manager_review. A deferment
+        removes up to three regular monthly payments from the delinquent balance
+        and subtracts 90 days from the delinquency. If both adjusted values reach
+        zero, the request is automatically approved for deferment only.
       requestBody:
         required: true
         content:
@@ -96,8 +101,8 @@ paths:
                 summary: Affordable total payment
                 value:
                   memberNumber: "123456"
-                  pastDueDate: "2026-09-09"
-                  pastDueBalance: 650
+                  pastDueDate: "2026-05-09"
+                  pastDueBalance: 1200
                   monthlyPayment: 300
                   regularDefermentCount: 1
                   paymentChoice:
@@ -105,76 +110,113 @@ paths:
                     affordablePayment: 400
       responses:
         "200":
-          description: Payment-plan decision saved successfully
+          description: Approval decision saved successfully
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApprovalResponse"
               examples:
-                approved:
-                  summary: Approved plan
+                defermentOnly:
+                  summary: Approved for deferment only
                   value:
                     reviewId: "72b708ee-957b-466f-9cd6-fd3e09aca998"
                     status: approved
                     daysPastDue: 20
+                    adjustedDaysPastDue: 0
+                    adjustedPastDueBalance: 0
+                    planPayment: 300
+                    catchUpAmount: 0
+                    numberOfPayments: 0
+                    finalPayment: 300
+                    regularDefermentAvailable: true
+                    regularDefermentApplied: true
+                    defermentMonths: 3
+                    deferredAmount: 650
+                    reasons:
+                      - Approved for 3-month deferment only; no payment plan is required.
+                    accountComment: >
+                      Payment plan decision: APPROVED. Member number: 123456.
+                      Due date: 2026-09-09. Original days delinquent: 20.
+                      Adjusted days delinquent: 0. Original delinquent balance:
+                      $650.00. Adjusted delinquent balance: $0.00. Regular
+                      deferment applied for 3 months; $650.00 deferred. Plan
+                      payment: $300.00. Payment count: 0. Final payment:
+                      $300.00. Decision reason: Approved for 3-month deferment
+                      only; no payment plan is required.
+                approvedPlan:
+                  summary: Approved payment plan after deferment
+                  value:
+                    reviewId: "3dfe09ac-a998-466f-9cd6-72b708ee957b"
+                    status: approved
+                    daysPastDue: 120
+                    adjustedDaysPastDue: 30
+                    adjustedPastDueBalance: 300
                     planPayment: 400
                     catchUpAmount: 100
-                    numberOfPayments: 7
-                    finalPayment: 350
+                    numberOfPayments: 3
+                    finalPayment: 400
                     regularDefermentAvailable: true
+                    regularDefermentApplied: true
+                    defermentMonths: 3
+                    deferredAmount: 900
                     reasons:
                       - All automatic approval criteria were met.
                     accountComment: >
-                      Payment plan decision: APPROVED. Member number:
-                      123456. Past due date: 2026-09-09. Days past due:
-                      20. Plan payment: 400.00. Number of payments: 7.
-                      Final payment: 350.00. Regular deferment:
-                      available. Reason: All automatic approval
-                      criteria were met.
+                      Payment plan decision: APPROVED. Member number: 123456.
+                      Original days delinquent: 120. Adjusted days delinquent:
+                      30. Original delinquent balance: $1200.00. Adjusted
+                      delinquent balance: $300.00. Regular deferment applied
+                      for 3 months; $900.00 deferred.
                 managerReview:
                   summary: Manager review required
                   value:
                     reviewId: "f60570be-804b-4b80-8aac-3c2f10a2b676"
                     status: manager_review
                     daysPastDue: 45
+                    adjustedDaysPastDue: 45
+                    adjustedPastDueBalance: 1300
                     planPayment: 400
                     catchUpAmount: 100
                     numberOfPayments: 13
                     finalPayment: 400
                     regularDefermentAvailable: false
+                    regularDefermentApplied: false
+                    defermentMonths: 0
+                    deferredAmount: 0
                     reasons:
-                      - The loan is between 31 and 89 days past due.
+                      - The loan remains between 31 and 89 days delinquent after deferment.
                       - The plan requires between 13 and 18 payments.
                     accountComment: >
-                      Payment plan decision: MANAGER REVIEW. Member
-                      number: 123456. Past due date: 2026-08-15.
-                      Days past due: 45. Plan payment: 400.00.
-                      Number of payments: 13. Final payment: 400.00.
-                      Regular deferment: not available. Reason: The
-                      loan is between 31 and 89 days past due. The
-                      plan requires between 13 and 18 payments.
+                      Payment plan decision: MANAGER REVIEW. Member number:
+                      123456. Original days delinquent: 45. Adjusted days
+                      delinquent: 45. Original delinquent balance: $1300.00.
+                      Adjusted delinquent balance: $1300.00. Regular deferment
+                      not available.
                 denied:
-                  summary: Denied plan
+                  summary: Denied payment plan
                   value:
                     reviewId: "20dcd597-40e4-4d73-8a44-f0f3249d2719"
                     status: denied
                     daysPastDue: 90
-                    planPayment: 350
-                    catchUpAmount: 50
-                    numberOfPayments: 20
-                    finalPayment: 350
-                    regularDefermentAvailable: true
+                    adjustedDaysPastDue: 90
+                    adjustedPastDueBalance: 1900
+                    planPayment: 400
+                    catchUpAmount: 100
+                    numberOfPayments: 19
+                    finalPayment: 400
+                    regularDefermentAvailable: false
+                    regularDefermentApplied: false
+                    defermentMonths: 0
+                    deferredAmount: 0
                     reasons:
-                      - The loan is 90 or more days past due.
+                      - The loan remains 90 or more days delinquent after deferment.
                       - The plan requires more than 18 payments.
                     accountComment: >
-                      Payment plan decision: DENIED. Member number:
-                      123456. Past due date: 2026-07-01. Days past
-                      due: 90. Plan payment: 350.00. Number of
-                      payments: 20. Final payment: 350.00. Regular
-                      deferment: available. Reason: The loan is 90
-                      or more days past due. The plan requires more
-                      than 18 payments.
+                      Payment plan decision: DENIED. Member number: 123456.
+                      Original days delinquent: 90. Adjusted days delinquent:
+                      90. Original delinquent balance: $1900.00. Adjusted
+                      delinquent balance: $1900.00. Regular deferment not
+                      available.
         "400":
           description: Invalid request
           content:
@@ -182,7 +224,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "401":
-          description: An authenticated associate identity was not available
+          description: An authenticated identity was not available
           content:
             application/json:
               schema:
@@ -210,12 +252,12 @@ paths:
   /api/v1/manager/reviews:
     get:
       tags:
-        - Approvals
+        - Managers
       summary: List pending manager reviews
       operationId: listManagerReviews
       description: >
-        Returns up to 100 pending payment plans in oldest-first
-        order. The authenticated user must be an active manager.
+        Returns up to 100 pending payment plans in oldest-first order.
+        The authenticated user must be an active manager.
       responses:
         "200":
           description: Pending manager reviews
@@ -256,12 +298,12 @@ paths:
   /api/v1/manager/reviews/{reviewId}:
     patch:
       tags:
-        - Approvals
+        - Managers
       summary: Resolve a pending manager review
       operationId: resolveManagerReview
       description: >
-        Approves or denies a pending manager review while
-        preserving the API's original decision.
+        Approves or denies a pending manager review while preserving the
+        API's original decision.
       parameters:
         - name: reviewId
           in: path
@@ -343,8 +385,7 @@ components:
       in: cookie
       name: CF_Authorization
       description: >
-        Cloudflare Access session cookie supplied after the user
-        signs in through the browser.
+        Cloudflare Access session cookie supplied after the user signs in.
 
   schemas:
     HealthResponse:
@@ -367,13 +408,20 @@ components:
       additionalProperties: false
       required:
         - email
+        - role
       properties:
         email:
           type: string
           format: email
-          description: Authenticated associate email address.
+          description: Authenticated user email address.
           examples:
             - associate@aeqira.com
+        role:
+          type: string
+          enum:
+            - associate
+            - manager
+          description: Application role assigned to the authenticated user.
 
     ApprovalRequest:
       type: object
@@ -396,15 +444,14 @@ components:
           type: string
           format: date
           description: >
-            Date of the oldest unpaid payment. The date must be
-            today or earlier. Days past due are calculated from
-            this value using UTC calendar dates.
+            Date of the oldest unpaid payment. The date must be today or
+            earlier. Days delinquent are calculated using UTC calendar dates.
           examples:
             - "2026-09-09"
         pastDueBalance:
           type: number
           exclusiveMinimum: 0
-          description: Total past-due balance.
+          description: Total delinquent balance.
           examples:
             - 650
         monthlyPayment:
@@ -457,7 +504,7 @@ components:
         affordablePayment:
           type: number
           exclusiveMinimum: 0
-          description: Total monthly amount the customer can afford.
+          description: Total monthly amount the member can afford.
 
     ApprovalResponse:
       type: object
@@ -466,11 +513,16 @@ components:
         - reviewId
         - status
         - daysPastDue
+        - adjustedDaysPastDue
+        - adjustedPastDueBalance
         - planPayment
         - catchUpAmount
         - numberOfPayments
         - finalPayment
         - regularDefermentAvailable
+        - regularDefermentApplied
+        - defermentMonths
+        - deferredAmount
         - reasons
         - accountComment
       properties:
@@ -487,21 +539,31 @@ components:
         daysPastDue:
           type: integer
           minimum: 0
+          description: Original number of calendar days delinquent.
+        adjustedDaysPastDue:
+          type: integer
+          minimum: 0
           description: >
-            Number of calendar days between the past-due date
-            and the current UTC date.
+            Days delinquent remaining after subtracting 90 days when a
+            regular deferment is applied.
+        adjustedPastDueBalance:
+          type: number
+          minimum: 0
+          description: >
+            Delinquent balance remaining after subtracting up to three
+            regular monthly payments.
         planPayment:
           type: number
           minimum: 0
-          description: Total regular payment during the plan.
+          description: Total regular payment during the payment plan.
         catchUpAmount:
           type: number
           minimum: 0
-          description: Amount applied to the past-due balance.
+          description: Amount above the monthly payment applied to delinquency.
         numberOfPayments:
           type: integer
           minimum: 0
-          description: Number of payments required by the plan.
+          description: Number of payments required by the payment plan.
         finalPayment:
           type: number
           minimum: 0
@@ -509,8 +571,21 @@ components:
         regularDefermentAvailable:
           type: boolean
           description: >
-            True when fewer than two regular deferments have
-            previously been used.
+            Whether fewer than two lifetime regular deferments were used
+            when the request was evaluated.
+        regularDefermentApplied:
+          type: boolean
+          description: Whether a three-month regular deferment was applied.
+        defermentMonths:
+          type: integer
+          enum:
+            - 0
+            - 3
+          description: Number of months included in the applied deferment.
+        deferredAmount:
+          type: number
+          minimum: 0
+          description: Amount removed from delinquency by the deferment.
         reasons:
           type: array
           minItems: 1
@@ -531,11 +606,16 @@ components:
         - associateEmail
         - pastDueDate
         - daysPastDue
+        - adjustedDaysPastDue
         - pastDueBalance
+        - adjustedPastDueBalance
         - monthlyPayment
         - planPayment
         - numberOfPayments
         - regularDefermentAvailable
+        - regularDefermentApplied
+        - defermentMonths
+        - deferredAmount
         - reasons
         - createdAt
       properties:
@@ -553,9 +633,19 @@ components:
         daysPastDue:
           type: integer
           minimum: 0
+          description: Original number of calendar days delinquent.
+        adjustedDaysPastDue:
+          type: integer
+          minimum: 0
+          description: Days delinquent remaining after deferment.
         pastDueBalance:
           type: number
           minimum: 0
+          description: Original delinquent balance.
+        adjustedPastDueBalance:
+          type: number
+          minimum: 0
+          description: Delinquent balance remaining after deferment.
         monthlyPayment:
           type: number
           minimum: 0
@@ -567,8 +657,19 @@ components:
           minimum: 0
         regularDefermentAvailable:
           type: boolean
+        regularDefermentApplied:
+          type: boolean
+        defermentMonths:
+          type: integer
+          enum:
+            - 0
+            - 3
+        deferredAmount:
+          type: number
+          minimum: 0
         reasons:
           type: array
+          minItems: 1
           items:
             type: string
         createdAt:
