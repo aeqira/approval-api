@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { AccountCommentModal } from "../src/components/AccountCommentModal";
 import { SubmissionFilters } from "../src/components/SubmissionFilters";
 import { SubmissionsTable } from "../src/components/SubmissionsTable";
+import { PlanCalculationLoader } from "../src/components/PlanCalculationLoader";
 import type { ApprovalSubmission } from "../src/types/approval";
 
 const submission: ApprovalSubmission = {
@@ -10,6 +11,7 @@ const submission: ApprovalSubmission = {
 	memberNumber: "MEMBER-001",
 	associateEmail: "associate@aeqira.com",
 	associateDisplayName: "Test Associate",
+	associateBadgePhoto: null,
 	pastDueDate: "2026-08-01",
 	daysPastDue: 45,
 	adjustedDaysPastDue: 0,
@@ -33,6 +35,29 @@ const submission: ApprovalSubmission = {
 };
 
 describe("submission components", () => {
+	it("shows submitted values in the calculation animation", () => {
+		const markup = renderToStaticMarkup(
+			<PlanCalculationLoader
+				values={{
+					memberNumber: "MEMBER-001",
+					pastDueDate: "2026-09-01",
+					pastDueBalance: 600,
+					monthlyPayment: 300,
+					regularDefermentCount: 1,
+					paymentChoice: {
+						type: "minimum_plus_extra",
+						extraAmount: 100,
+					},
+				}}
+			/>,
+		);
+
+		expect(markup).toContain("$600.00");
+		expect(markup).toContain("$300.00");
+		expect(markup).toContain("$400.00");
+		expect(markup).toContain("Deferments");
+	});
+
 	it("renders the complete filter controls", () => {
 		const markup = renderToStaticMarkup(
 			<SubmissionFilters
@@ -71,8 +96,28 @@ describe("submission components", () => {
 
 		expect(markup).toContain("MEMBER-001");
 		expect(markup).toContain("Test Associate");
+		expect(markup).toContain("TA");
 		expect(markup).toContain("Approved");
 		expect(markup).toContain("View Comment");
+	});
+
+	it("renders an associate badge photo when one is available", () => {
+		const markup = renderToStaticMarkup(
+			<SubmissionsTable
+				submissions={[
+					{
+						...submission,
+						associateBadgePhoto: "https://example.com/badge-photo.jpg",
+					},
+				]}
+				page={1}
+				totalPages={1}
+				onPageChange={() => undefined}
+				onViewComment={() => undefined}
+			/>,
+		);
+
+		expect(markup).toContain("https://example.com/badge-photo.jpg");
 	});
 
 	it("renders original and manager comments as separate logs", () => {

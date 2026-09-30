@@ -99,6 +99,7 @@ export async function listPendingManagerReviews(
 						associate_user.display_name,
 						approval_reviews.associate_email
 					) AS associate_display_name,
+					associate_user.badge_photo AS associate_badge_photo,
 					approval_reviews.past_due_date,
 					approval_reviews.days_past_due,
 					approval_reviews.adjusted_days_past_due,
@@ -129,6 +130,7 @@ export async function listPendingManagerReviews(
 		memberNumber: row.member_number,
 		associateEmail: row.associate_email,
 		associateDisplayName: row.associate_display_name,
+		associateBadgePhoto: row.associate_badge_photo,
 		pastDueDate: row.past_due_date,
 		daysPastDue: row.days_past_due,
 		adjustedDaysPastDue: row.adjusted_days_past_due,

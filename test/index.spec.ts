@@ -86,6 +86,7 @@ describe("Identity API", () => {
 		expect(await response.json()).toEqual({
 			email: "associate@aeqira.com",
 			displayName: "associate@aeqira.com",
+			badgePhoto: null,
 			role: "associate",
 		});
 	});
@@ -130,6 +131,7 @@ describe("Identity API", () => {
 		expect(await response.json()).toEqual({
 			email: "manager@aeqira.com",
 			displayName: "Test Manager",
+			badgePhoto: null,
 			role: "manager",
 		});
 	});
@@ -412,6 +414,23 @@ describe("Manager Reviews API", () => {
 });
 
 describe("Approval API", () => {
+	it("rejects more than two lifetime regular deferments", async () => {
+		const response = await submitApproval({
+			pastDueBalance: 600,
+			monthlyPayment: 300,
+			regularDefermentCount: 3,
+			paymentChoice: {
+				type: "minimum_plus_extra",
+				extraAmount: 100,
+			},
+		});
+
+		expect(response.status).toBe(400);
+		expect(await response.json()).toEqual(
+			expect.objectContaining({ error: "Invalid approval request" }),
+		);
+	});
+
 	it("rejects a future past-due date", async () => {
 		const tomorrow = new Date();
 

@@ -9,6 +9,7 @@ import type {
 	SubmissionSortField,
 } from "../types/approval";
 import { AccountCommentModal } from "./AccountCommentModal";
+import { LoadingIndicator } from "./LoadingIndicator";
 import { SubmissionFilters } from "./SubmissionFilters";
 import { SubmissionsTable } from "./SubmissionsTable";
 
@@ -124,7 +125,7 @@ export function SubmissionsView() {
 
 			{isLoading && (
 				<div className="result-state">
-					<h3>Loading Submissions...</h3>
+					<LoadingIndicator label="Loading Submissions..." />
 				</div>
 			)}
 

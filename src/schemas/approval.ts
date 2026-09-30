@@ -8,8 +8,54 @@ import {
 } from "../functions/helpers";
 import type {
 	ApprovalRequest,
+	ApprovalValidationErrors,
 	ManagerDecisionRequest,
 } from "../types/approval";
+
+export function validateApprovalRequest(
+	value: ApprovalRequest,
+): ApprovalValidationErrors {
+	const errors: ApprovalValidationErrors = {};
+
+	if (!isNonEmptyString(value.memberNumber)) {
+		errors.memberNumber = "Enter a member number.";
+	}
+
+	if (!isValidDate(value.pastDueDate)) {
+		errors.pastDueDate = "Enter a valid past-due date that is not in the future.";
+	}
+
+	if (!isPositiveNumber(value.pastDueBalance)) {
+		errors.pastDueBalance = "Enter a delinquent balance greater than $0.";
+	}
+
+	if (!isPositiveNumber(value.monthlyPayment)) {
+		errors.monthlyPayment = "Enter a monthly payment greater than $0.";
+	}
+
+	if (!isNonNegativeInteger(value.regularDefermentCount)) {
+		errors.regularDefermentCount =
+			"Enter the lifetime number of regular deferments as a whole number.";
+	} else if (value.regularDefermentCount > 2) {
+		errors.regularDefermentCount = "Deferments used must be between 0 and 2.";
+	}
+
+	if (value.paymentChoice.type === "minimum_plus_extra") {
+		if (!isPositiveNumber(value.paymentChoice.extraAmount)) {
+			errors.paymentAmount = "Enter an extra amount greater than $0.";
+		}
+	} else if (!isPositiveNumber(value.paymentChoice.affordablePayment)) {
+		errors.paymentAmount = "Enter an affordable payment greater than $0.";
+	} else if (
+		isPositiveNumber(value.monthlyPayment) &&
+		value.paymentChoice.affordablePayment <= value.monthlyPayment
+	) {
+		errors.paymentAmount =
+			"The affordable payment must exceed the regular monthly payment.";
+	}
+
+	return errors;
+}
 
 export function isApprovalRequest(value: unknown): value is ApprovalRequest {
 	if (!isRecord(value)) {
@@ -22,6 +68,7 @@ export function isApprovalRequest(value: unknown): value is ApprovalRequest {
 		isPositiveNumber(value.pastDueBalance) &&
 		isPositiveNumber(value.monthlyPayment) &&
 		isNonNegativeInteger(value.regularDefermentCount) &&
+		value.regularDefermentCount <= 2 &&
 		isPaymentChoice(value.paymentChoice)
 	);
 }

@@ -10,6 +10,7 @@ export async function findActiveUser(
 				SELECT
 					email,
 					display_name,
+					badge_photo,
 					role
 				FROM users
 				WHERE email = ? COLLATE NOCASE
@@ -27,6 +28,7 @@ export async function findActiveUser(
 	return {
 		email: user.email.trim().toLowerCase(),
 		displayName: user.display_name?.trim() || null,
+		badgePhoto: user.badge_photo?.trim() || null,
 		role: user.role,
 	};
 }

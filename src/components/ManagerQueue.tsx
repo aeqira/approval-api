@@ -1,3 +1,4 @@
+import { ArrowClockwise24Regular } from "@fluentui/react-icons/svg/arrow-clockwise";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { API_ROUTES } from "../config/api";
 import {
@@ -6,6 +7,9 @@ import {
 	readApiResponse,
 } from "../functions/helpers";
 import { ManagerDecisionControls } from "./ManagerDecisionControls";
+import { LoadingIndicator } from "./LoadingIndicator";
+import { DecisionStatusIcon } from "./DecisionStatusIcon";
+import { AssociateIdentity } from "./AssociateIdentity";
 import type { ManagerReview, ManagerReviewsResponse } from "../types/approval";
 
 export function ManagerQueue() {
@@ -41,7 +45,7 @@ export function ManagerQueue() {
 
 			const body = await readApiResponse<ManagerReviewsResponse>(
 				response,
-				"Unable to load Manager Reviews",
+				"Unable to load Reviews",
 			);
 
 			setReviews(body.reviews);
@@ -51,7 +55,7 @@ export function ManagerQueue() {
 			}
 
 			setError(
-				getErrorMessage(caughtError, "Unable to load Manager Reviews"),
+				getErrorMessage(caughtError, "Unable to load Reviews"),
 			);
 		} finally {
 			if (activeRequest.current === requestController) {
@@ -91,8 +95,8 @@ export function ManagerQueue() {
 		<section className="workspace-panel manager-queue">
 			<div className="panel-heading manager-queue-heading">
 				<div>
-					<h2>Manager Review Queue</h2>
-					<p>Review payment plans requiring manager approval</p>
+					<h2>Review Queue</h2>
+					<p>Review payment plans requiring approval</p>
 				</div>
 
 				<button
@@ -101,13 +105,17 @@ export function ManagerQueue() {
 					type="button"
 					onClick={() => void loadReviews()}
 				>
+					<ArrowClockwise24Regular
+						aria-hidden="true"
+						className={isLoading ? "spinning-icon" : undefined}
+					/>
 					Refresh
 				</button>
 			</div>
 
 			{isLoading && (
 				<div className="result-state">
-					<h3>Loading Reviews...</h3>
+					<LoadingIndicator label="Loading Reviews..." />
 				</div>
 			)}
 
@@ -121,7 +129,7 @@ export function ManagerQueue() {
 			{!isLoading && !error && reviews.length === 0 && (
 				<div className="result-state">
 					<h3>No Pending Reviews</h3>
-					<p>Payment plans requiring manager review will appear here</p>
+					<p>Payment plans requiring review will appear here</p>
 				</div>
 			)}
 
@@ -132,11 +140,17 @@ export function ManagerQueue() {
 							<div className="manager-review-heading">
 								<div>
 									<h3>Member {review.memberNumber}</h3>
-									<p>{review.associateDisplayName}</p>
+									<p>
+										<AssociateIdentity
+											badgePhoto={review.associateBadgePhoto}
+											displayName={review.associateDisplayName}
+										/>
+									</p>
 								</div>
 
 								<span className="decision-status decision-status--manager-review">
-									Manager Review
+									<DecisionStatusIcon status="manager_review" />
+									Review
 								</span>
 							</div>
 

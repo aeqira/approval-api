@@ -1,11 +1,17 @@
+import { CheckmarkCircle24Regular } from "@fluentui/react-icons/svg/checkmark-circle";
+import { Clipboard24Regular } from "@fluentui/react-icons/svg/clipboard";
 import {
 	copyTextToClipboard,
 	formatCurrency,
 	getStatusLabel,
+	splitOriginalComment,
 } from "../functions/helpers";
 import type { DecisionPanelProps } from "../types/approval";
+import { PlanCalculationLoader } from "./PlanCalculationLoader";
+import { DecisionStatusIcon } from "./DecisionStatusIcon";
 
 export function DecisionPanel({
+	calculationValues,
 	error,
 	isSubmitting,
 	result,
@@ -24,10 +30,9 @@ export function DecisionPanel({
 				<h2>Payment Plan Result</h2>
 			</div>
 
-			{isSubmitting && (
+			{isSubmitting && calculationValues && (
 				<div className="result-state">
-					<h3>Evaluating Plan...</h3>
-					<p>Applying decision criteria</p>
+					<PlanCalculationLoader values={calculationValues} />
 				</div>
 			)}
 
@@ -41,7 +46,7 @@ export function DecisionPanel({
 			{!isSubmitting && !error && !result && (
 				<div className="result-state">
 					<div className="empty-state-icon" aria-hidden="true">
-						✓
+						<CheckmarkCircle24Regular />
 					</div>
 
 					<h3>No Result Yet</h3>
@@ -68,6 +73,7 @@ export function DecisionPanel({
 					<div
 						className={`decision-status decision-status--${result.status.replaceAll("_", "-")}`}
 					>
+						<DecisionStatusIcon status={result.status} />
 						{getStatusLabel(result.status)}
 					</div>
 
@@ -101,7 +107,7 @@ export function DecisionPanel({
 							<dt>Regular Deferment</dt>
 							<dd>
 								{result.regularDefermentApplied
-									? `${result.defermentMonths} months — ${formatCurrency(result.deferredAmount)}`
+									? `${result.defermentMonths} months, ${formatCurrency(result.deferredAmount)}`
 									: "Not Available"}
 							</dd>
 						</div>
@@ -126,11 +132,16 @@ export function DecisionPanel({
 									type="button"
 									onClick={copyAccountComment}
 								>
+									<Clipboard24Regular aria-hidden="true" />
 									Copy Comment
 								</button>
 							</div>
 
-							<p>{result.accountComment}</p>
+							<ul className="account-comment-list">
+								{splitOriginalComment(result.accountComment).map((line) => (
+									<li key={line}>{line}</li>
+								))}
+							</ul>
 						</div>
 					)}
 				</div>

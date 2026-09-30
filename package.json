@@ -24,6 +24,7 @@
 		"wrangler": "^4.143.0"
 	},
 	"dependencies": {
+		"@fluentui/react-icons": "^2.0.343",
 		"react": "^19.3.0",
 		"react-dom": "^19.3.0"
 	},

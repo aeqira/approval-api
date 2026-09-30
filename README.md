@@ -163,6 +163,7 @@ Example response:
             "memberNumber": "123456",
             "associateEmail": "associate@aeqira.com",
             "associateDisplayName": "Associate Name",
+            "associateBadgePhoto": null,
             "pastDueDate": "2026-08-15",
             "daysPastDue": 45,
             "adjustedDaysPastDue": 45,
@@ -630,6 +631,7 @@ Expected manager response when the simulated development identity has an active 
 {
     "email": "arichard@aeqira.com",
     "displayName": "Andrew Richard",
+    "badgePhoto": null,
     "role": "manager"
 }
 ```

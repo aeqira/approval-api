@@ -1,3 +1,6 @@
+import { ArrowSync24Regular } from "@fluentui/react-icons/svg/arrow-sync";
+import { Checkmark24Regular } from "@fluentui/react-icons/svg/checkmark";
+import { DismissCircle24Regular } from "@fluentui/react-icons/svg/dismiss-circle";
 import { useState } from "react";
 import { API_ROUTES } from "../config/api";
 import { getErrorMessage, readApiResponse } from "../functions/helpers";
@@ -12,7 +15,8 @@ export function ManagerDecisionControls({
 	onResolved,
 }: ManagerDecisionControlProps) {
 	const [reason, setReason] = useState("");
-	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [pendingDecision, setPendingDecision] =
+		useState<ManagerDecisionStatus | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
 	async function submitDecision(status: ManagerDecisionStatus) {
@@ -23,7 +27,7 @@ export function ManagerDecisionControls({
 			return;
 		}
 
-		setIsSubmitting(true);
+		setPendingDecision(status);
 		setError(null);
 
 		try {
@@ -49,11 +53,12 @@ export function ManagerDecisionControls({
 				getErrorMessage(caughtError, "Unable to save manager decision"),
 			);
 		} finally {
-			setIsSubmitting(false);
+			setPendingDecision(null);
 		}
 	}
 
 	const reasonId = `manager-reason-${reviewId}`;
+	const isSubmitting = pendingDecision !== null;
 
 	return (
 		<div className="manager-decision-controls">
@@ -78,7 +83,12 @@ export function ManagerDecisionControls({
 					type="button"
 					onClick={() => void submitDecision("approved")}
 				>
-					{isSubmitting ? "Saving..." : "Approve"}
+					{pendingDecision === "approved" ? (
+						<ArrowSync24Regular aria-hidden="true" className="spinning-icon" />
+					) : (
+						<Checkmark24Regular aria-hidden="true" />
+					)}
+					{pendingDecision === "approved" ? "Saving..." : "Approve"}
 				</button>
 
 				<button
@@ -87,7 +97,12 @@ export function ManagerDecisionControls({
 					type="button"
 					onClick={() => void submitDecision("denied")}
 				>
-					{isSubmitting ? "Saving..." : "Deny"}
+					{pendingDecision === "denied" ? (
+						<ArrowSync24Regular aria-hidden="true" className="spinning-icon" />
+					) : (
+						<DismissCircle24Regular aria-hidden="true" />
+					)}
+					{pendingDecision === "denied" ? "Saving..." : "Deny"}
 				</button>
 			</div>
 		</div>

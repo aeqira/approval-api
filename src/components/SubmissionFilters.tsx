@@ -1,3 +1,5 @@
+import { Delete24Regular } from "@fluentui/react-icons/svg/delete";
+import { Filter24Regular } from "@fluentui/react-icons/svg/filter";
 import type {
 	SubmissionFiltersProps,
 	SubmissionSortField,
@@ -42,7 +44,7 @@ export function SubmissionFilters({
 					<option value="">All statuses</option>
 					<option value="approved">Approved</option>
 					<option value="denied">Denied</option>
-					<option value="manager_review">Manager Review</option>
+					<option value="manager_review">Review</option>
 				</select>
 			</label>
 
@@ -118,9 +120,11 @@ export function SubmissionFilters({
 
 			<div className="submission-filter-actions">
 				<button className="primary-button" type="submit">
+					<Filter24Regular aria-hidden="true" />
 					Apply Filters
 				</button>
 				<button className="secondary-button" type="button" onClick={onClear}>
+					<Delete24Regular aria-hidden="true" />
 					Clear Filters
 				</button>
 			</div>

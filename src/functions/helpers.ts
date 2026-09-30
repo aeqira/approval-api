@@ -17,7 +17,7 @@ export function formatCurrency(value: number): string {
 
 export function getStatusLabel(status: ApprovalStatus): string {
 	if (status === "manager_review") {
-		return "Manager Review";
+		return "Review";
 	}
 
 	return status === "approved" ? "Approved" : "Denied";
@@ -153,7 +153,17 @@ export function formatSubmittedAt(value: string): string {
 		: `${value.replace(" ", "T")}Z`;
 	const date = new Date(normalizedValue);
 
-	return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+	if (Number.isNaN(date.getTime())) {
+		return value;
+	}
+
+	const submittedTime = date.toLocaleTimeString("en-US", {
+		hour: "numeric",
+		minute: "2-digit",
+		hour12: true,
+	});
+
+	return `${date.toLocaleDateString("en-US")} ${submittedTime}`;
 }
 
 export function splitOriginalComment(comment: string): string[] {
@@ -199,4 +209,17 @@ export function calculateDaysPastDue(pastDueDate: string): number {
 	const millisecondsPerDay = 24 * 60 * 60 * 1000;
 
 	return Math.max(0, Math.floor(difference / millisecondsPerDay));
+}
+
+export async function waitForMinimumDuration(
+	startedAt: number,
+	minimumDurationMs: number,
+): Promise<void> {
+	const remainingDuration = minimumDurationMs - (Date.now() - startedAt);
+
+	if (remainingDuration > 0) {
+		await new Promise<void>((resolve) => {
+			window.setTimeout(resolve, remainingDuration);
+		});
+	}
 }

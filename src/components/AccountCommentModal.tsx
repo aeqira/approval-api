@@ -1,3 +1,5 @@
+import { Clipboard24Regular } from "@fluentui/react-icons/svg/clipboard";
+import { Dismiss24Regular } from "@fluentui/react-icons/svg/dismiss";
 import { useEffect, useRef } from "react";
 import {
 	copyTextToClipboard,
@@ -98,7 +100,7 @@ export function AccountCommentModal({
 						type="button"
 						onClick={onClose}
 					>
-						×
+						<Dismiss24Regular aria-hidden="true" />
 					</button>
 				</div>
 
@@ -140,6 +142,7 @@ export function AccountCommentModal({
 							void copyTextToClipboard(submission.accountComment)
 						}
 					>
+						<Clipboard24Regular aria-hidden="true" />
 						Copy Comment
 					</button>
 					<button className="primary-button" type="button" onClick={onClose}>

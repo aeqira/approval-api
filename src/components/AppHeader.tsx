@@ -1,8 +1,15 @@
+import { AddSquare24Regular } from "@fluentui/react-icons/svg/add-square";
+import { ArrowSync24Regular } from "@fluentui/react-icons/svg/arrow-sync";
+import { ClipboardTaskListLtr24Regular } from "@fluentui/react-icons/svg/clipboard-task-list-ltr";
+import { People24Regular } from "@fluentui/react-icons/svg/people";
 import type { AppHeaderProps } from "../types/approval";
+import { AssociateIdentity } from "./AssociateIdentity";
 
 export function AppHeader({
 	activeView,
+	isIdentityLoading,
 	userDisplayName,
+	userBadgePhoto,
 	showManagerQueue,
 	onViewChange,
 }: AppHeaderProps) {
@@ -11,7 +18,20 @@ export function AppHeader({
 			<div className="app-header-top">
 				<h1 className="app-header-title">Payment Plan Review</h1>
 
-				<span className="app-header-email">{userDisplayName}</span>
+				<span className="app-header-email">
+					{isIdentityLoading ? (
+						<ArrowSync24Regular
+							aria-hidden="true"
+							className="spinning-icon"
+						/>
+					) : (
+						<AssociateIdentity
+							badgePhoto={userBadgePhoto}
+							displayName={userDisplayName}
+						/>
+					)}
+					{isIdentityLoading && userDisplayName}
+				</span>
 			</div>
 
 			<nav className="app-nav" aria-label="Primary navigation">
@@ -24,6 +44,7 @@ export function AppHeader({
 					type="button"
 					onClick={() => onViewChange("new-review")}
 				>
+					<AddSquare24Regular aria-hidden="true" />
 					New Review
 				</button>
 
@@ -36,6 +57,7 @@ export function AppHeader({
 					type="button"
 					onClick={() => onViewChange("submissions")}
 				>
+					<ClipboardTaskListLtr24Regular aria-hidden="true" />
 					All Submissions
 				</button>
 
@@ -49,6 +71,7 @@ export function AppHeader({
 						type="button"
 						onClick={() => onViewChange("manager-queue")}
 					>
+						<People24Regular aria-hidden="true" />
 						Manager Queue
 					</button>
 				)}

@@ -7,12 +7,14 @@ export type UserRole = "associate" | "manager";
 export interface AppUser {
 	email: string;
 	displayName: string | null;
+	badgePhoto: string | null;
 	role: UserRole;
 }
 
 export interface IdentityResponse {
 	email: string;
 	displayName: string;
+	badgePhoto: string | null;
 	role: UserRole;
 }
 
@@ -47,6 +49,18 @@ export interface ApprovalRequest {
 	paymentChoice: PaymentChoice;
 }
 
+export type ApprovalFormField =
+	| "memberNumber"
+	| "pastDueDate"
+	| "pastDueBalance"
+	| "monthlyPayment"
+	| "regularDefermentCount"
+	| "paymentAmount";
+
+export type ApprovalValidationErrors = Partial<
+	Record<ApprovalFormField, string>
+>;
+
 export type ApprovalStatus = "approved" | "denied" | "manager_review";
 
 export interface ApprovalDecision {
@@ -75,6 +89,7 @@ export interface ManagerReview {
 	memberNumber: string;
 	associateEmail: string;
 	associateDisplayName: string;
+	associateBadgePhoto: string | null;
 	pastDueDate: string;
 	daysPastDue: number;
 	adjustedDaysPastDue: number;
@@ -107,6 +122,7 @@ export interface ApprovalSubmission {
 	memberNumber: string;
 	associateEmail: string;
 	associateDisplayName: string;
+	associateBadgePhoto: string | null;
 	pastDueDate: string;
 	daysPastDue: number;
 	adjustedDaysPastDue: number;
@@ -178,6 +194,20 @@ export interface AccountCommentModalProps {
 	onClose: () => void;
 }
 
+export interface LoadingIndicatorProps {
+	label: string;
+	detail?: string;
+	compact?: boolean;
+}
+
+export interface DecisionStatusIconProps {
+	status: ApprovalStatus;
+}
+
+export interface PlanCalculationLoaderProps {
+	values: ReviewFormValues;
+}
+
 export interface ListSubmissionsInput {
 	search?: string;
 	status?: ApprovalStatus;
@@ -195,6 +225,7 @@ export interface SubmissionRow {
 	member_number: string;
 	associate_email: string;
 	associate_display_name: string;
+	associate_badge_photo: string | null;
 	past_due_date: string;
 	days_past_due: number;
 	adjusted_days_past_due: number;
@@ -231,6 +262,7 @@ export interface ManagerReviewRow {
 	member_number: string;
 	associate_email: string;
 	associate_display_name: string;
+	associate_badge_photo: string | null;
 	past_due_date: string;
 	days_past_due: number;
 	adjusted_days_past_due: number;
@@ -262,14 +294,22 @@ export interface PendingReviewRow {
 export interface UserRow {
 	email: string;
 	display_name: string | null;
+	badge_photo: string | null;
 	role: UserRole;
+}
+
+export interface AssociateIdentityProps {
+	displayName: string;
+	badgePhoto: string | null;
 }
 
 export type ReviewFormValues = ApprovalRequest;
 
 export interface AppHeaderProps {
 	activeView: AppView;
+	isIdentityLoading: boolean;
 	userDisplayName: string;
+	userBadgePhoto: string | null;
 	showManagerQueue: boolean;
 	onViewChange: (view: AppView) => void;
 }
@@ -281,6 +321,7 @@ export interface ReviewFormProps {
 }
 
 export interface DecisionPanelProps {
+	calculationValues: ReviewFormValues | null;
 	error: string | null;
 	isSubmitting: boolean;
 	result: ApprovalResponse | null;

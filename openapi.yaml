@@ -519,6 +519,7 @@ components:
       required:
         - email
         - displayName
+        - badgePhoto
         - role
       properties:
         email:
@@ -532,6 +533,11 @@ components:
           description: User name from the active users record, or the email address as a fallback.
           examples:
             - Andrew Richard
+        badgePhoto:
+          type:
+            - string
+            - "null"
+          description: Badge photo URL or data URL from the active users record.
         role:
           type: string
           enum:
@@ -721,6 +727,7 @@ components:
         - memberNumber
         - associateEmail
         - associateDisplayName
+        - associateBadgePhoto
         - pastDueDate
         - daysPastDue
         - adjustedDaysPastDue
@@ -747,6 +754,11 @@ components:
         associateDisplayName:
           type: string
           description: Employee name from the users table, or their email as a fallback.
+        associateBadgePhoto:
+          type:
+            - string
+            - "null"
+          description: Employee badge photo URL or data URL, or null when initials should be shown.
         pastDueDate:
           type: string
           format: date
@@ -870,6 +882,7 @@ components:
         - memberNumber
         - associateEmail
         - associateDisplayName
+        - associateBadgePhoto
         - pastDueDate
         - daysPastDue
         - adjustedDaysPastDue
@@ -900,6 +913,11 @@ components:
           format: email
         associateDisplayName:
           type: string
+        associateBadgePhoto:
+          type:
+            - string
+            - "null"
+          description: Employee badge photo URL or data URL, or null when initials should be shown.
         pastDueDate:
           type: string
           format: date

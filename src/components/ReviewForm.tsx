@@ -1,5 +1,16 @@
+import { ArrowSync24Regular } from "@fluentui/react-icons/svg/arrow-sync";
+import { Calculator24Regular } from "@fluentui/react-icons/svg/calculator";
+import { CalendarArrowCounterclockwise24Regular } from "@fluentui/react-icons/svg/calendar-arrow-counterclockwise";
+import { Eraser24Regular } from "@fluentui/react-icons/svg/eraser";
+import { ErrorCircle24Regular } from "@fluentui/react-icons/svg/error-circle";
 import { useState, type FormEvent } from "react";
-import type { ReviewFormProps } from "../types/approval";
+import { validateApprovalRequest } from "../schemas/approval";
+import type {
+	ApprovalFormField,
+	ApprovalValidationErrors,
+	ReviewFormProps,
+	ReviewFormValues,
+} from "../types/approval";
 
 export function ReviewForm({
 	isSubmitting,
@@ -15,10 +26,21 @@ export function ReviewForm({
 		"minimum_plus_extra" | "affordable_payment"
 	>("minimum_plus_extra");
 	const [paymentAmount, setPaymentAmount] = useState("");
+	const [errors, setErrors] = useState<ApprovalValidationErrors>({});
 
-	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-		event.preventDefault();
+	function clearFieldError(field: ApprovalFormField) {
+		setErrors((current) => {
+			if (!current[field]) {
+				return current;
+			}
 
+			const nextErrors = { ...current };
+			delete nextErrors[field];
+			return nextErrors;
+		});
+	}
+
+	function getValues(): ReviewFormValues {
 		const paymentChoice =
 			paymentType === "minimum_plus_extra"
 				? {
@@ -30,14 +52,28 @@ export function ReviewForm({
 						affordablePayment: Number(paymentAmount),
 					};
 
-		await onSubmit({
+		return {
 			memberNumber: memberNumber.trim(),
 			pastDueDate,
 			pastDueBalance: Number(pastDueBalance),
 			monthlyPayment: Number(monthlyPayment),
 			regularDefermentCount: Number(regularDefermentCount),
 			paymentChoice,
-		});
+		};
+	}
+
+	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+		event.preventDefault();
+		const values = getValues();
+		const validationErrors = validateApprovalRequest(values);
+
+		if (Object.keys(validationErrors).length > 0) {
+			setErrors(validationErrors);
+			return;
+		}
+
+		setErrors({});
+		await onSubmit(values);
 	}
 
 	function handleClear() {
@@ -48,6 +84,7 @@ export function ReviewForm({
 		setRegularDefermentCount("0");
 		setPaymentType("minimum_plus_extra");
 		setPaymentAmount("");
+		setErrors({});
 		onClear();
 	}
 
@@ -61,25 +98,50 @@ export function ReviewForm({
 				</p>
 			</div>
 
-			<form className="review-form" onSubmit={handleSubmit}>
+			<form className="review-form" noValidate onSubmit={handleSubmit}>
+				{Object.keys(errors).length > 0 && (
+					<div className="form-validation-summary" role="alert">
+						<ErrorCircle24Regular aria-hidden="true" />
+						<span>Correct the highlighted fields before evaluating the plan.</span>
+					</div>
+				)}
+
 				<label className="form-field">
 					<span>Member Number</span>
 					<input
-						required
+						aria-describedby={errors.memberNumber ? "member-number-error" : undefined}
+						aria-invalid={Boolean(errors.memberNumber)}
 						autoComplete="off"
 						value={memberNumber}
-						onChange={(event) => setMemberNumber(event.target.value)}
+						onChange={(event) => {
+							setMemberNumber(event.target.value);
+							clearFieldError("memberNumber");
+						}}
 					/>
+					{errors.memberNumber && (
+						<small className="form-field-error" id="member-number-error">
+							{errors.memberNumber}
+						</small>
+					)}
 				</label>
 
 				<label className="form-field">
 					<span>Past Due Date</span>
 					<input
-						required
+						aria-describedby={errors.pastDueDate ? "past-due-date-error" : undefined}
+						aria-invalid={Boolean(errors.pastDueDate)}
 						type="date"
 						value={pastDueDate}
-						onChange={(event) => setPastDueDate(event.target.value)}
+						onChange={(event) => {
+							setPastDueDate(event.target.value);
+							clearFieldError("pastDueDate");
+						}}
 					/>
+					{errors.pastDueDate && (
+						<small className="form-field-error" id="past-due-date-error">
+							{errors.pastDueDate}
+						</small>
+					)}
 				</label>
 
 				<label className="form-field">
@@ -87,14 +149,23 @@ export function ReviewForm({
 					<div className="money-input">
 						<span aria-hidden="true">$</span>
 						<input
-							required
+							aria-describedby={errors.pastDueBalance ? "past-due-balance-error" : undefined}
+							aria-invalid={Boolean(errors.pastDueBalance)}
 							min="0.01"
 							step="0.01"
 							type="number"
 							value={pastDueBalance}
-							onChange={(event) => setPastDueBalance(event.target.value)}
+							onChange={(event) => {
+								setPastDueBalance(event.target.value);
+								clearFieldError("pastDueBalance");
+							}}
 						/>
 					</div>
+					{errors.pastDueBalance && (
+						<small className="form-field-error" id="past-due-balance-error">
+							{errors.pastDueBalance}
+						</small>
+					)}
 				</label>
 
 				<label className="form-field">
@@ -102,26 +173,48 @@ export function ReviewForm({
 					<div className="money-input">
 						<span aria-hidden="true">$</span>
 						<input
-							required
+							aria-describedby={errors.monthlyPayment ? "monthly-payment-error" : undefined}
+							aria-invalid={Boolean(errors.monthlyPayment)}
 							min="0.01"
 							step="0.01"
 							type="number"
 							value={monthlyPayment}
-							onChange={(event) => setMonthlyPayment(event.target.value)}
+							onChange={(event) => {
+								setMonthlyPayment(event.target.value);
+								clearFieldError("monthlyPayment");
+							}}
 						/>
 					</div>
+					{errors.monthlyPayment && (
+						<small className="form-field-error" id="monthly-payment-error">
+							{errors.monthlyPayment}
+						</small>
+					)}
 				</label>
 
 				<label className="form-field">
-					<span>Deferments Used</span>
+					<span className="form-field-label-with-icon">
+						<CalendarArrowCounterclockwise24Regular aria-hidden="true" />
+						Deferments Used
+					</span>
 					<input
-						required
+						aria-describedby={errors.regularDefermentCount ? "deferment-count-error" : undefined}
+						aria-invalid={Boolean(errors.regularDefermentCount)}
 						min="0"
+						max="2"
 						step="1"
 						type="number"
 						value={regularDefermentCount}
-						onChange={(event) => setRegularDefermentCount(event.target.value)}
+						onChange={(event) => {
+							setRegularDefermentCount(event.target.value);
+							clearFieldError("regularDefermentCount");
+						}}
 					/>
+					{errors.regularDefermentCount && (
+						<small className="form-field-error" id="deferment-count-error">
+							{errors.regularDefermentCount}
+						</small>
+					)}
 				</label>
 
 				<fieldset className="payment-choice">
@@ -132,7 +225,10 @@ export function ReviewForm({
 							checked={paymentType === "minimum_plus_extra"}
 							name="paymentType"
 							type="radio"
-							onChange={() => setPaymentType("minimum_plus_extra")}
+							onChange={() => {
+								setPaymentType("minimum_plus_extra");
+								clearFieldError("paymentAmount");
+							}}
 						/>
 						<span>Minimum Plus Extra</span>
 					</label>
@@ -142,7 +238,10 @@ export function ReviewForm({
 							checked={paymentType === "affordable_payment"}
 							name="paymentType"
 							type="radio"
-							onChange={() => setPaymentType("affordable_payment")}
+							onChange={() => {
+								setPaymentType("affordable_payment");
+								clearFieldError("paymentAmount");
+							}}
 						/>
 						<span>Affordable Payment</span>
 					</label>
@@ -158,14 +257,23 @@ export function ReviewForm({
 					<div className="money-input">
 						<span aria-hidden="true">$</span>
 						<input
-							required
+							aria-describedby={errors.paymentAmount ? "payment-amount-error" : undefined}
+							aria-invalid={Boolean(errors.paymentAmount)}
 							min="0.01"
 							step="0.01"
 							type="number"
 							value={paymentAmount}
-							onChange={(event) => setPaymentAmount(event.target.value)}
+							onChange={(event) => {
+								setPaymentAmount(event.target.value);
+								clearFieldError("paymentAmount");
+							}}
 						/>
 					</div>
+					{errors.paymentAmount && (
+						<small className="form-field-error" id="payment-amount-error">
+							{errors.paymentAmount}
+						</small>
+					)}
 				</label>
 
 				<div className="review-form-actions">
@@ -175,6 +283,7 @@ export function ReviewForm({
 						type="button"
 						onClick={handleClear}
 					>
+						<Eraser24Regular aria-hidden="true" />
 						Clear Form
 					</button>
 
@@ -183,7 +292,20 @@ export function ReviewForm({
 						disabled={isSubmitting}
 						type="submit"
 					>
-						{isSubmitting ? "Evaluating..." : "Evaluate Plan"}
+						{isSubmitting ? (
+							<>
+								<ArrowSync24Regular
+									aria-hidden="true"
+									className="spinning-icon"
+								/>
+								Evaluating...
+							</>
+						) : (
+							<>
+								<Calculator24Regular aria-hidden="true" />
+								Evaluate Plan
+							</>
+						)}
 					</button>
 				</div>
 			</form>
