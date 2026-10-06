@@ -20,6 +20,6 @@ export async function handleIdentity(
 		displayName:
 			storedUser?.displayName ?? storedUser?.email ?? authentication.email,
 		badgePhoto: storedUser?.badgePhoto ?? null,
-		role: storedUser?.role ?? "associate",
+		role: storedUser?.role ?? "collector",
 	});
 }

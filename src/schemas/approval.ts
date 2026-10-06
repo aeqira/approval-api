@@ -14,6 +14,7 @@ import type {
 
 export function validateApprovalRequest(
 	value: ApprovalRequest,
+	maxRegularDefermentCount = 2,
 ): ApprovalValidationErrors {
 	const errors: ApprovalValidationErrors = {};
 
@@ -22,7 +23,8 @@ export function validateApprovalRequest(
 	}
 
 	if (!isValidDate(value.pastDueDate)) {
-		errors.pastDueDate = "Enter a valid past-due date that is not in the future.";
+		errors.pastDueDate =
+			"Enter a valid past-due date that is not in the future.";
 	}
 
 	if (!isPositiveNumber(value.pastDueBalance)) {
@@ -36,8 +38,8 @@ export function validateApprovalRequest(
 	if (!isNonNegativeInteger(value.regularDefermentCount)) {
 		errors.regularDefermentCount =
 			"Enter the lifetime number of regular deferments as a whole number.";
-	} else if (value.regularDefermentCount > 2) {
-		errors.regularDefermentCount = "Deferments used must be between 0 and 2.";
+	} else if (value.regularDefermentCount > maxRegularDefermentCount) {
+		errors.regularDefermentCount = `Deferments used must be between 0 and ${maxRegularDefermentCount}.`;
 	}
 
 	if (value.paymentChoice.type === "minimum_plus_extra") {
@@ -68,7 +70,6 @@ export function isApprovalRequest(value: unknown): value is ApprovalRequest {
 		isPositiveNumber(value.pastDueBalance) &&
 		isPositiveNumber(value.monthlyPayment) &&
 		isNonNegativeInteger(value.regularDefermentCount) &&
-		value.regularDefermentCount <= 2 &&
 		isPaymentChoice(value.paymentChoice)
 	);
 }

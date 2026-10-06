@@ -1,18 +1,5 @@
+import { getInitials } from "../functions/helpers";
 import type { AssociateIdentityProps } from "../types/approval";
-
-function getInitials(displayName: string): string {
-	const nameParts = displayName.trim().split(/\s+/).filter(Boolean);
-
-	if (nameParts.length === 0) {
-		return "?";
-	}
-
-	if (nameParts.length === 1) {
-		return nameParts[0].slice(0, 2).toUpperCase();
-	}
-
-	return `${nameParts[0][0]}${nameParts.at(-1)?.[0] ?? ""}`.toUpperCase();
-}
 
 export function AssociateIdentity({
 	displayName,

@@ -1,23 +1,30 @@
 import { calculateDaysPastDue, toCents, toDollars } from "../functions/helpers";
 import type {
+	ApprovalCriteria,
 	ApprovalDecision,
 	ApprovalRequest,
 	ApprovalStatus,
 } from "../types/approval";
 
-export function evaluateApproval(request: ApprovalRequest): ApprovalDecision {
+export function evaluateApproval(
+	request: ApprovalRequest,
+	criteria: ApprovalCriteria,
+): ApprovalDecision {
 	const pastDueBalance = toCents(request.pastDueBalance);
 	const monthlyPayment = toCents(request.monthlyPayment);
 	const daysPastDue = calculateDaysPastDue(request.pastDueDate);
-	const regularDefermentAvailable = request.regularDefermentCount < 2;
+	const regularDefermentAvailable =
+		request.regularDefermentCount < criteria.maxRegularDefermentCount;
 	const regularDefermentApplied = regularDefermentAvailable;
-	const defermentMonths = regularDefermentApplied ? 3 : 0;
+	const defermentMonths = regularDefermentApplied
+		? criteria.defermentMonths
+		: 0;
 	const deferredAmount = regularDefermentApplied
 		? Math.min(pastDueBalance, monthlyPayment * defermentMonths)
 		: 0;
 	const adjustedPastDueBalance = pastDueBalance - deferredAmount;
 	const adjustedDaysPastDue = regularDefermentApplied
-		? Math.max(0, daysPastDue - 90)
+		? Math.max(0, daysPastDue - criteria.defermentDaysReduction)
 		: daysPastDue;
 	const defermentOnlyApproval =
 		regularDefermentApplied &&
@@ -36,27 +43,35 @@ export function evaluateApproval(request: ApprovalRequest): ApprovalDecision {
 
 	if (!defermentOnlyApproval && catchUpAmount <= 0) {
 		denialReasons.push(
-			"The proposed payment must exceed the regular monthly payment.",
+			"Proposed payment must exceed the regular monthly payment.",
 		);
 	}
 
 	const numberOfPayments =
 		catchUpAmount > 0 ? Math.ceil(adjustedPastDueBalance / catchUpAmount) : 0;
 
-	if (adjustedDaysPastDue >= 90) {
+	if (adjustedDaysPastDue >= criteria.denialDaysThreshold) {
 		denialReasons.push(
-			"The loan remains 90 or more days delinquent after deferment.",
+			`Loan remains ${criteria.denialDaysThreshold} or more days delinquent after deferment.`,
 		);
-	} else if (adjustedDaysPastDue >= 31) {
+	} else if (adjustedDaysPastDue > criteria.automaticApprovalMaxDays) {
 		reviewReasons.push(
-			"The loan remains between 31 and 89 days delinquent after deferment.",
+			`Loan remains between ${criteria.automaticApprovalMaxDays + 1} and ${
+				criteria.denialDaysThreshold - 1
+			} days delinquent after deferment.`,
 		);
 	}
 
-	if (numberOfPayments > 18) {
-		denialReasons.push("The plan requires more than 18 payments.");
-	} else if (numberOfPayments > 12) {
-		reviewReasons.push("The plan requires between 13 and 18 payments.");
+	if (numberOfPayments > criteria.maxPlanPayments) {
+		denialReasons.push(
+			`Plan requires more than ${criteria.maxPlanPayments} payments.`,
+		);
+	} else if (numberOfPayments > criteria.automaticApprovalMaxPayments) {
+		reviewReasons.push(
+			`Plan requires between ${
+				criteria.automaticApprovalMaxPayments + 1
+			} and ${criteria.maxPlanPayments} payments.`,
+		);
 	}
 
 	let status: ApprovalStatus;
@@ -65,7 +80,7 @@ export function evaluateApproval(request: ApprovalRequest): ApprovalDecision {
 	if (defermentOnlyApproval) {
 		status = "approved";
 		reasons = [
-			"Approved for 3-month deferment only; no payment plan is required.",
+			`Approved for ${criteria.defermentMonths}-month deferment only; no payment plan is required.`,
 		];
 	} else if (denialReasons.length > 0) {
 		status = "denied";

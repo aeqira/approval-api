@@ -1,8 +1,12 @@
 import type { FormEvent } from "react";
 
-export type AppView = "new-review" | "manager-queue" | "submissions";
+export type AppView =
+	| "new-review"
+	| "manager-queue"
+	| "submissions"
+	| "admin-dashboard";
 
-export type UserRole = "associate" | "manager";
+export type UserRole = "collector" | "manager" | "admin";
 
 export interface AppUser {
 	email: string;
@@ -29,6 +33,61 @@ export type AuthenticationResult =
 export type ManagerAuthorizationResult =
 	| { ok: true; user: AppUser }
 	| { ok: false; response: Response };
+
+export type AdminAuthorizationResult =
+	| { ok: true; user: AppUser }
+	| { ok: false; response: Response };
+
+export interface ApprovalCriteria {
+	versionId: number;
+	maxRegularDefermentCount: number;
+	defermentMonths: number;
+	defermentDaysReduction: number;
+	automaticApprovalMaxDays: number;
+	denialDaysThreshold: number;
+	automaticApprovalMaxPayments: number;
+	maxPlanPayments: number;
+	changeReason: string | null;
+	changedBy: string | null;
+	changedAt: string;
+}
+
+export interface ApprovalCriteriaResponse {
+	criteria: ApprovalCriteria;
+}
+
+export interface ApprovalCriteriaHistoryResponse {
+	versions: ApprovalCriteria[];
+}
+
+export interface UpdateApprovalCriteriaRequest {
+	maxRegularDefermentCount: number;
+	defermentMonths: number;
+	defermentDaysReduction: number;
+	automaticApprovalMaxDays: number;
+	denialDaysThreshold: number;
+	automaticApprovalMaxPayments: number;
+	maxPlanPayments: number;
+	changeReason: string;
+}
+
+export interface SaveApprovalCriteriaInput extends UpdateApprovalCriteriaRequest {
+	changedBy: string;
+}
+
+export interface ApprovalCriteriaRow {
+	id: number;
+	max_regular_deferment_count: number;
+	deferment_months: number;
+	deferment_days_reduction: number;
+	automatic_approval_max_days: number;
+	denial_days_threshold: number;
+	automatic_approval_max_payments: number;
+	max_plan_payments: number;
+	change_reason: string | null;
+	changed_by: string | null;
+	changed_at: string;
+}
 
 export type PaymentChoice =
 	| {
@@ -311,13 +370,19 @@ export interface AppHeaderProps {
 	userDisplayName: string;
 	userBadgePhoto: string | null;
 	showManagerQueue: boolean;
+	showAdminDashboard: boolean;
 	onViewChange: (view: AppView) => void;
 }
 
 export interface ReviewFormProps {
 	isSubmitting: boolean;
+	maxRegularDefermentCount: number;
 	onSubmit: (values: ReviewFormValues) => Promise<void>;
 	onClear: () => void;
+}
+
+export interface AdminCriteriaDashboardProps {
+	onCriteriaUpdated: (criteria: ApprovalCriteria) => void;
 }
 
 export interface DecisionPanelProps {
@@ -341,3 +406,8 @@ export interface ManagerDecisionResponse {
 	accountComment: string;
 	reviewedAt: string;
 }
+
+export type CriteriaNumberField = Exclude<
+	keyof UpdateApprovalCriteriaRequest,
+	"changeReason"
+>;

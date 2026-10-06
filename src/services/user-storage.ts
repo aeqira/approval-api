@@ -34,5 +34,9 @@ export async function findActiveUser(
 }
 
 export function isManager(user: AppUser): boolean {
-	return user.role === "manager";
+	return user.role === "manager" || user.role === "admin";
+}
+
+export function isAdmin(user: AppUser): boolean {
+	return user.role === "admin";
 }

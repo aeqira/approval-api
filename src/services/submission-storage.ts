@@ -1,3 +1,4 @@
+import { SORT_COLUMNS } from "../config/api";
 import { toDollars } from "../functions/helpers";
 import type {
 	ApprovalSubmission,
@@ -5,17 +6,7 @@ import type {
 	ListSubmissionsInput,
 	SubmissionCountRow,
 	SubmissionRow,
-	SubmissionSortField,
 } from "../types/approval";
-
-const SORT_COLUMNS: Record<SubmissionSortField, string> = {
-	createdAt: "approval_reviews.created_at",
-	memberNumber: "approval_reviews.member_number",
-	status: "approval_reviews.current_status",
-	daysPastDue: "approval_reviews.adjusted_days_past_due",
-	pastDueBalance: "approval_reviews.adjusted_past_due_balance_cents",
-	numberOfPayments: "approval_reviews.number_of_payments",
-};
 
 export async function listSubmissions(
 	database: D1Database,

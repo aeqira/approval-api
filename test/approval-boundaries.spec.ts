@@ -2,15 +2,7 @@ import { SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import { API_ROUTES } from "../src/config/api";
 import type { ApprovalResponse } from "../src/types/approval";
-
-function getDateDaysAgo(days: number): string {
-	const date = new Date();
-
-	date.setUTCHours(0, 0, 0, 0);
-	date.setUTCDate(date.getUTCDate() - days);
-
-	return date.toISOString().slice(0, 10);
-}
+import { getDateDaysAgo } from "../src/functions/helpers";
 
 async function getDecision(
 	daysPastDue: number,

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { API_ROUTES } from "../config/api";
+import { API_ROUTES, EMPTY_FILTERS } from "../config/api";
 import { getErrorMessage, readApiResponse } from "../functions/helpers";
 import type {
 	ApprovalSubmission,
@@ -12,14 +12,6 @@ import { AccountCommentModal } from "./AccountCommentModal";
 import { LoadingIndicator } from "./LoadingIndicator";
 import { SubmissionFilters } from "./SubmissionFilters";
 import { SubmissionsTable } from "./SubmissionsTable";
-
-const EMPTY_FILTERS: SubmissionFilterValues = {
-	search: "",
-	status: "",
-	defermentApplied: "",
-	dateFrom: "",
-	dateTo: "",
-};
 
 export function SubmissionsView() {
 	const [submissions, setSubmissions] = useState<ApprovalSubmission[]>([]);

@@ -15,6 +15,7 @@ import type {
 
 export function ReviewForm({
 	isSubmitting,
+	maxRegularDefermentCount,
 	onSubmit,
 	onClear,
 }: ReviewFormProps) {
@@ -66,7 +67,10 @@ export function ReviewForm({
 	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
 		const values = getValues();
-		const validationErrors = validateApprovalRequest(values);
+		const validationErrors = validateApprovalRequest(
+			values,
+			maxRegularDefermentCount,
+		);
 
 		if (Object.keys(validationErrors).length > 0) {
 			setErrors(validationErrors);
@@ -217,7 +221,7 @@ export function ReviewForm({
 						}
 						aria-invalid={Boolean(errors.regularDefermentCount)}
 						min="0"
-						max="2"
+						max={maxRegularDefermentCount}
 						step="1"
 						type="number"
 						value={regularDefermentCount}

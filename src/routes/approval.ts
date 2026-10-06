@@ -3,6 +3,7 @@ import { evaluateApproval } from "../services/approval";
 import { jsonNoStore, logWorkerError } from "../functions/helpers";
 import { requireAuthenticatedEmail } from "../services/authorization";
 import { saveApprovalReview } from "../services/review-storage";
+import { getActiveApprovalCriteria } from "../services/approval-criteria-storage";
 
 export async function handleApproval(
 	request: Request,
@@ -45,9 +46,26 @@ export async function handleApproval(
 		);
 	}
 
-	const decision = evaluateApproval(body);
-
 	try {
+		const criteria = await getActiveApprovalCriteria(database);
+
+		if (!criteria) {
+			return jsonNoStore({ error: "Active approval criteria not found" }, 500);
+		}
+
+		if (body.regularDefermentCount > criteria.maxRegularDefermentCount) {
+			return jsonNoStore(
+				{
+					error: "Invalid approval request",
+					fieldErrors: {
+						regularDefermentCount: `Deferments used must be between 0 and ${criteria.maxRegularDefermentCount}.`,
+					},
+				},
+				400,
+			);
+		}
+
+		const decision = evaluateApproval(body, criteria);
 		const reviewId = await saveApprovalReview(database, {
 			associateEmail: authentication.email,
 			request: body,
@@ -59,13 +77,8 @@ export async function handleApproval(
 			reviewId,
 		});
 	} catch (error) {
-		logWorkerError("Failed to save approval review", error);
-	}
+		logWorkerError("Failed to evaluate or save approval review", error);
 
-	return jsonNoStore(
-		{
-			error: "Unable to save approval review",
-		},
-		500,
-	);
+		return jsonNoStore({ error: "Unable to process approval review" }, 500);
+	}
 }

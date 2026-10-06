@@ -4,6 +4,7 @@ import { AccountCommentModal } from "../src/components/AccountCommentModal";
 import { SubmissionFilters } from "../src/components/SubmissionFilters";
 import { SubmissionsTable } from "../src/components/SubmissionsTable";
 import { PlanCalculationLoader } from "../src/components/PlanCalculationLoader";
+import { ReviewForm } from "../src/components/ReviewForm";
 import type { ApprovalSubmission } from "../src/types/approval";
 
 const submission: ApprovalSubmission = {
@@ -35,6 +36,19 @@ const submission: ApprovalSubmission = {
 };
 
 describe("submission components", () => {
+	it("uses the active criteria for the deferment input limit", () => {
+		const markup = renderToStaticMarkup(
+			<ReviewForm
+				isSubmitting={false}
+				maxRegularDefermentCount={4}
+				onClear={() => undefined}
+				onSubmit={async () => undefined}
+			/>,
+		);
+
+		expect(markup).toContain('max="4"');
+	});
+
 	it("shows submitted values in the calculation animation", () => {
 		const markup = renderToStaticMarkup(
 			<PlanCalculationLoader
@@ -125,8 +139,8 @@ describe("submission components", () => {
 			<AccountCommentModal submission={submission} onClose={() => undefined} />,
 		);
 
-		expect(markup).toContain("Original Decision Log");
-		expect(markup).toContain("Manager Decision Log");
+		expect(markup).toContain("Decision Log");
+		expect(markup).toContain("Manager Cmments");
 		expect(markup).toContain("Approved after review.");
 	});
 });

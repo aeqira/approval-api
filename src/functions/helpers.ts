@@ -1,15 +1,12 @@
+import { CURRENCY_FORMATTER, DATE_PATTERN } from "../config/api";
 import type {
 	ApiErrorResponse,
+	ApprovalCriteria,
+	ApprovalCriteriaRow,
 	ApprovalStatus,
 	PaymentChoice,
+	UpdateApprovalCriteriaRequest,
 } from "../types/approval";
-
-const CURRENCY_FORMATTER = new Intl.NumberFormat("en-US", {
-	style: "currency",
-	currency: "USD",
-});
-
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 export function formatCurrency(value: number): string {
 	return CURRENCY_FORMATTER.format(value);
@@ -222,4 +219,75 @@ export async function waitForMinimumDuration(
 			window.setTimeout(resolve, remainingDuration);
 		});
 	}
+}
+
+export function criteriaToForm(
+	criteria: ApprovalCriteria,
+): UpdateApprovalCriteriaRequest {
+	return {
+		maxRegularDefermentCount: criteria.maxRegularDefermentCount,
+		defermentMonths: criteria.defermentMonths,
+		defermentDaysReduction: criteria.defermentDaysReduction,
+		automaticApprovalMaxDays: criteria.automaticApprovalMaxDays,
+		denialDaysThreshold: criteria.denialDaysThreshold,
+		automaticApprovalMaxPayments: criteria.automaticApprovalMaxPayments,
+		maxPlanPayments: criteria.maxPlanPayments,
+		changeReason: "",
+	};
+}
+
+export function getInitials(displayName: string): string {
+	const nameParts = displayName.trim().split(/\s+/).filter(Boolean);
+
+	if (nameParts.length === 0) {
+		return "?";
+	}
+
+	if (nameParts.length === 1) {
+		return nameParts[0].slice(0, 2).toUpperCase();
+	}
+
+	return `${nameParts[0][0]}${nameParts.at(-1)?.[0] ?? ""}`.toUpperCase();
+}
+
+export function formatCalculatorDigits(value: number): string {
+	return Math.round(value * 100)
+		.toString()
+		.padStart(8, "0")
+		.slice(-8);
+}
+
+export function isIntegerBetween(
+	value: unknown,
+	minimum: number,
+	maximum: number,
+): value is number {
+	return isNonNegativeInteger(value) && value >= minimum && value <= maximum;
+}
+
+export function mapApprovalCriteria(
+	row: ApprovalCriteriaRow,
+): ApprovalCriteria {
+	return {
+		versionId: row.id,
+		maxRegularDefermentCount: row.max_regular_deferment_count,
+		defermentMonths: row.deferment_months,
+		defermentDaysReduction: row.deferment_days_reduction,
+		automaticApprovalMaxDays: row.automatic_approval_max_days,
+		denialDaysThreshold: row.denial_days_threshold,
+		automaticApprovalMaxPayments: row.automatic_approval_max_payments,
+		maxPlanPayments: row.max_plan_payments,
+		changeReason: row.change_reason,
+		changedBy: row.changed_by,
+		changedAt: row.changed_at,
+	};
+}
+
+export function getDateDaysAgo(days: number): string {
+	const date = new Date();
+
+	date.setUTCHours(0, 0, 0, 0);
+	date.setUTCDate(date.getUTCDate() - days);
+
+	return date.toISOString().slice(0, 10);
 }

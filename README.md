@@ -18,6 +18,8 @@ The application:
 - Provides searchable, sortable, paginated submission history to all employees.
 - Lets employees clear the review form and current result in one action.
 - Supports minimum-plus-extra and affordable-payment proposals.
+- Stores versioned approval criteria that admins can update from the dashboard.
+- Applies the active criteria to both form validation and API decisions.
 
 ## Production
 
@@ -50,6 +52,10 @@ The following features are implemented:
 - Local D1 migration testing
 - OpenAPI documentation
 - Automated decision, identity, authorization, and manager-action tests
+- Admin-only approval-criteria dashboard
+- Immutable approval-criteria version history
+- Criteria-driven form validation and API decisions
+- Installable web app and native iOS project
 
 The user administration interface and manager decision reporting remain outside the current scope.
 
@@ -76,27 +82,62 @@ Response:
 GET /api/v1/identity
 ```
 
-Returns the authenticated user’s normalized email address, display name, and application role.
+Returns the authenticated user’s normalized email address, display name, badge photo, and application role.
 
-Users are treated as associates by default. An authenticated user receives the `manager` role only when their email has an active manager record in the `users` table.
+Users are treated as collectors by default. Active records in the `users` table can grant the `manager` or `admin` role.
 
-Associate response:
+Collector response:
 
 ```json
 {
     "email": "associate@aeqira.com",
     "displayName": "associate@aeqira.com",
-    "role": "associate"
+    "badgePhoto": null,
+    "role": "collector"
 }
 ```
 
-Manager response:
+Admin response:
 
 ```json
 {
     "email": "arichard@aeqira.com",
     "displayName": "Andrew Richard",
-    "role": "manager"
+    "badgePhoto": null,
+    "role": "admin"
+}
+```
+
+### Active approval criteria
+
+```text
+GET /api/v1/criteria
+```
+
+Returns the active criteria to any authenticated employee. The review form uses `maxRegularDefermentCount` from this response instead of relying on a hard-coded deferment limit.
+
+### Admin approval criteria
+
+```text
+GET /api/v1/admin/criteria
+PATCH /api/v1/admin/criteria
+GET /api/v1/admin/criteria/history
+```
+
+These endpoints require an active `admin` user record. Saving criteria creates a new immutable version, makes it active for new decisions, records the admin email, and preserves earlier versions in the change history.
+
+Example update:
+
+```json
+{
+    "maxRegularDefermentCount": 2,
+    "defermentMonths": 3,
+    "defermentDaysReduction": 90,
+    "automaticApprovalMaxDays": 30,
+    "denialDaysThreshold": 90,
+    "automaticApprovalMaxPayments": 12,
+    "maxPlanPayments": 18,
+    "changeReason": "Updated payment-plan policy."
 }
 ```
 
@@ -176,7 +217,7 @@ Example response:
             "regularDefermentApplied": false,
             "defermentMonths": 0,
             "deferredAmount": 0,
-            "reasons": ["The loan remains between 31 and 89 days delinquent after deferment."],
+            "reasons": ["Loan remains between 31 and 89 days delinquent after deferment."],
             "createdAt": "2026-09-29 10:11:22"
         }
     ]
@@ -358,13 +399,15 @@ Example:
 | `numberOfPayments`          | integer      | Calculated number of payments required                      |
 | `finalPayment`              | number       | Reduced final payment when the remaining balance is smaller |
 | `regularDefermentAvailable` | boolean      | Whether a regular deferment can still be offered            |
-| `regularDefermentApplied`   | boolean      | Whether the three-month regular deferment was applied       |
-| `defermentMonths`           | integer      | Number of months deferred: `0` or `3`                       |
+| `regularDefermentApplied`   | boolean      | Whether a regular deferment was applied                     |
+| `defermentMonths`           | integer      | Number of months from the active criteria, or `0`            |
 | `deferredAmount`            | number       | Amount removed from delinquency by the deferment            |
 | `reasons`                   | string array | Reasons supporting the decision                             |
 | `accountComment`            | string       | Paste-ready servicing-system comment                        |
 
 ## Decision rules
+
+Decision rules come from the active criteria version. The values below are the initial defaults created by migration `0011_add_admin_and_approval_criteria.sql`.
 
 ### Approved
 
@@ -397,13 +440,13 @@ Denial conditions take precedence over manager-review conditions.
 
 ## Regular deferments
 
-A regular deferment is available when:
+A regular deferment is available under the default criteria when:
 
 ```text
 regular deferment count < 2
 ```
 
-When a deferment is available, the API applies it before evaluating the plan. It removes up to three regular monthly payments from the delinquent balance and subtracts 90 days from the delinquency, with both adjusted values floored at zero.
+When a deferment is available, the API applies it before evaluating the plan. Under the default criteria, it removes up to three regular monthly payments from the delinquent balance and subtracts 90 days from the delinquency, with both adjusted values floored at zero.
 
 If the deferment brings both adjusted delinquency and adjusted balance to zero, the request is automatically approved for deferment only. When two or more regular deferments have already been used, `regularDefermentAvailable` is `false` and no deferment is applied.
 
@@ -459,6 +502,7 @@ The table contains:
 
 - Email address
 - Display name
+- Badge photo
 - Role
 - Active status
 - Creation timestamp
@@ -467,11 +511,12 @@ The table contains:
 Supported roles are:
 
 ```text
-associate
+collector
 manager
+admin
 ```
 
-Authenticated users are treated as associates unless an active user record grants them the manager role. When no display name is stored, the interface falls back to the user’s email address.
+Authenticated users are treated as collectors unless an active user record grants them the manager or admin role. Admins can use the manager queue and approval-criteria dashboard. When no display name is stored, the interface falls back to the user’s email address. When no badge photo is stored, the interface displays the user’s initials.
 
 Manager API endpoints verify the authenticated email against the `users` table on every request. Hiding the Manager Queue in the frontend is not the security boundary; manager authorization is enforced by the Worker.
 
@@ -733,6 +778,39 @@ npx wrangler d1 migrations apply approval-api-db --remote
 ```
 
 Review pending migrations before applying them to production.
+
+## Safari and iOS applications
+
+### Install from Safari
+
+The deployed site includes a web-app manifest, iPhone home-screen icon, standalone display metadata, and an offline application shell. API responses are never stored by the service worker.
+
+On an iPhone or iPad:
+
+1. Open `https://approve.aeqira.com` in Safari.
+2. Sign in through Cloudflare Access.
+3. Choose **Share**, then **Add to Home Screen**.
+4. Launch **Plan Review** from the Home Screen.
+
+### Build the native iOS application
+
+The native project uses Capacitor 8, Swift Package Manager, iOS 15 or newer, and bundle identifier `com.aeqira.paymentplanreview`. It loads `https://approve.aeqira.com` so Cloudflare Access authentication remains on the same origin.
+
+Build and synchronize the web and native projects:
+
+```bash
+npm run ios:sync
+```
+
+Open the project in Xcode:
+
+```bash
+npm run ios:open
+```
+
+In Xcode, select the **App** target, choose the Aeqira development team under **Signing & Capabilities**, confirm the bundle identifier, and test on a physical device. To submit, select **Any iOS Device**, choose **Product > Archive**, then use the Organizer to validate and upload the archive to App Store Connect.
+
+The App Store version depends on the deployed Cloudflare application. Apple may require native-only value beyond a web wrapper under App Review Guideline 4.2. For an employee-only financial-services app, use the organization’s Apple Developer account and consider private Custom App distribution through Apple Business Manager.
 
 ## Validation
 

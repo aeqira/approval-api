@@ -1,4 +1,4 @@
-import { API_ROUTES } from "./config/api";
+import { API_ROUTES, MANAGER_REVIEW_PREFIX } from "./config/api";
 import { jsonNoStore, methodNotAllowed } from "./functions/helpers";
 import { handleApproval } from "./routes/approval";
 import { handleIdentity } from "./routes/identity";
@@ -7,8 +7,12 @@ import {
 	handleResolveManagerReview,
 } from "./routes/manager-reviews";
 import { handleListSubmissions } from "./routes/submissions";
-
-const MANAGER_REVIEW_PREFIX = `${API_ROUTES.managerReviews}/`;
+import {
+	handleGetApprovalCriteria,
+	handleListApprovalCriteriaHistory,
+	handleUpdateApprovalCriteria,
+} from "./routes/admin-criteria";
+import { handleGetApprovalCriteria as handleGetActiveApprovalCriteria } from "./routes/criteria";
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
@@ -23,6 +27,12 @@ export default {
 		if (url.pathname === API_ROUTES.identity) {
 			return request.method === "GET"
 				? handleIdentity(request, env.approval_api_db, ctx)
+				: methodNotAllowed("GET");
+		}
+
+		if (url.pathname === API_ROUTES.criteria) {
+			return request.method === "GET"
+				? handleGetActiveApprovalCriteria(request, env.approval_api_db, ctx)
 				: methodNotAllowed("GET");
 		}
 
@@ -49,6 +59,24 @@ export default {
 						reviewId,
 					)
 				: methodNotAllowed("PATCH");
+		}
+
+		if (url.pathname === API_ROUTES.adminCriteria) {
+			if (request.method === "GET") {
+				return handleGetApprovalCriteria(request, env.approval_api_db, ctx);
+			}
+
+			if (request.method === "PATCH") {
+				return handleUpdateApprovalCriteria(request, env.approval_api_db, ctx);
+			}
+
+			return methodNotAllowed("GET, PATCH");
+		}
+
+		if (url.pathname === API_ROUTES.adminCriteriaHistory) {
+			return request.method === "GET"
+				? handleListApprovalCriteriaHistory(request, env.approval_api_db, ctx)
+				: methodNotAllowed("GET");
 		}
 
 		if (url.pathname === API_ROUTES.approval) {

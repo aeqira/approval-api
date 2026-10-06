@@ -129,9 +129,7 @@ export function AccountCommentModal({
 										) : (
 											<PersonFeedback24Regular aria-hidden="true" />
 										)}
-										{blockIndex === 0
-											? "Original Decision Log"
-											: "Manager Decision Log"}
+										{blockIndex === 0 ? "Decision Log" : "Manager Cmments"}
 									</h3>
 									<ul>
 										{entries.map((line, lineIndex) => (

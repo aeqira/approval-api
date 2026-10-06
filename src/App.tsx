@@ -10,8 +10,10 @@ import { DecisionPanel } from "./components/DecisionPanel";
 import { ReviewForm } from "./components/ReviewForm";
 import { ManagerQueue } from "./components/ManagerQueue";
 import { SubmissionsView } from "./components/SubmissionsView";
+import { AdminCriteriaDashboard } from "./components/AdminCriteriaDashboard";
 import type {
 	AppView,
+	ApprovalCriteriaResponse,
 	ApprovalResponse,
 	IdentityResponse,
 	ReviewFormValues,
@@ -28,6 +30,8 @@ export default function App() {
 	const [userBadgePhoto, setUserBadgePhoto] = useState<string | null>(null);
 	const [isIdentityLoading, setIsIdentityLoading] = useState(true);
 	const [showManagerQueue, setShowManagerQueue] = useState(false);
+	const [showAdminDashboard, setShowAdminDashboard] = useState(false);
+	const [maxRegularDefermentCount, setMaxRegularDefermentCount] = useState(2);
 
 	useEffect(() => {
 		let cancelled = false;
@@ -46,13 +50,15 @@ export default function App() {
 				if (!cancelled) {
 					setUserDisplayName(body.displayName);
 					setUserBadgePhoto(body.badgePhoto);
-					setShowManagerQueue(body.role === "manager");
+					setShowManagerQueue(body.role === "manager" || body.role === "admin");
+					setShowAdminDashboard(body.role === "admin");
 				}
 			} catch {
 				if (!cancelled) {
 					setUserDisplayName("Identity unavailable");
 					setUserBadgePhoto(null);
 					setShowManagerQueue(false);
+					setShowAdminDashboard(false);
 				}
 			} finally {
 				if (!cancelled) {
@@ -62,6 +68,37 @@ export default function App() {
 		}
 
 		void loadIdentity();
+
+		return () => {
+			cancelled = true;
+		};
+	}, []);
+
+	useEffect(() => {
+		let cancelled = false;
+
+		async function loadApprovalCriteria() {
+			try {
+				const response = await fetch(API_ROUTES.criteria, {
+					headers: { Accept: "application/json" },
+				});
+
+				const body = await readApiResponse<ApprovalCriteriaResponse>(
+					response,
+					"Unable to load approval criteria",
+				);
+
+				if (!cancelled) {
+					setMaxRegularDefermentCount(
+						body.criteria.maxRegularDefermentCount,
+					);
+				}
+			} catch {
+				// Keep the current default if criteria cannot be loaded.
+			}
+		}
+
+		void loadApprovalCriteria();
 
 		return () => {
 			cancelled = true;
@@ -114,6 +151,7 @@ export default function App() {
 				userDisplayName={userDisplayName}
 				userBadgePhoto={userBadgePhoto}
 				showManagerQueue={showManagerQueue}
+				showAdminDashboard={showAdminDashboard}
 				onViewChange={setActiveView}
 			/>
 
@@ -122,6 +160,7 @@ export default function App() {
 					<div className="review-workspace">
 						<ReviewForm
 							isSubmitting={isSubmitting}
+							maxRegularDefermentCount={maxRegularDefermentCount}
 							onClear={clearReview}
 							onSubmit={evaluatePlan}
 						/>
@@ -136,6 +175,15 @@ export default function App() {
 
 				{activeView === "submissions" && <SubmissionsView />}
 				{activeView === "manager-queue" && showManagerQueue && <ManagerQueue />}
+				{activeView === "admin-dashboard" && showAdminDashboard && (
+					<AdminCriteriaDashboard
+						onCriteriaUpdated={(criteria) =>
+							setMaxRegularDefermentCount(
+								criteria.maxRegularDefermentCount,
+							)
+						}
+					/>
+				)}
 			</main>
 		</div>
 	);

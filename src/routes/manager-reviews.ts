@@ -1,3 +1,4 @@
+import { UUID_PATTERN } from "../config/api";
 import { jsonNoStore, logWorkerError } from "../functions/helpers";
 import { isManagerDecisionRequest } from "../schemas/approval";
 import { requireManager } from "../services/authorization";
@@ -5,9 +6,6 @@ import {
 	listPendingManagerReviews,
 	resolveManagerReview,
 } from "../services/review-storage";
-
-const UUID_PATTERN =
-	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function handleListManagerReviews(
 	request: Request,
@@ -50,10 +48,7 @@ export async function handleResolveManagerReview(
 	try {
 		body = await request.json();
 	} catch {
-		return jsonNoStore(
-			{ error: "Request body must contain valid JSON" },
-			400,
-		);
+		return jsonNoStore({ error: "Request body must contain valid JSON" }, 400);
 	}
 
 	if (!isManagerDecisionRequest(body)) {

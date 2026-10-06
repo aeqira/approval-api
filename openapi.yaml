@@ -2,12 +2,12 @@ openapi: 3.1.0
 
 info:
   title: Approval API
-  version: 1.3.0
+  version: 1.4.0
   description: >
     Evaluates payment-plan proposals for delinquent loans. When a regular
-    deferment is available, the API applies a three-month deferment before
-    evaluating the remaining balance and delinquency. Production access is
-    protected by Cloudflare Access.
+    deferment is available, the API applies the active deferment criteria
+    before evaluating the remaining balance and delinquency. Production
+    access is protected by Cloudflare Access.
   license:
     name: Proprietary
     identifier: LicenseRef-Proprietary
@@ -28,6 +28,10 @@ tags:
     description: Manager-review queue and decision operations.
   - name: Submissions
     description: Searchable payment-plan submission history for employees.
+  - name: Criteria
+    description: Active payment-plan decision criteria available to employees.
+  - name: Admin
+    description: Versioned approval-criteria administration for active admins.
 
 paths:
   /api/v1/health:
@@ -68,6 +72,120 @@ paths:
         "403":
           description: Access denied by Cloudflare Access
 
+  /api/v1/criteria:
+    get:
+      tags:
+        - Criteria
+      summary: Get the active approval criteria
+      operationId: getActiveApprovalCriteria
+      responses:
+        "200":
+          description: Active criteria used for new approval decisions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApprovalCriteriaResponse"
+        "401":
+          description: An authenticated identity was not available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: No active criteria version was found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/admin/criteria:
+    get:
+      tags:
+        - Admin
+      summary: Get the active approval criteria as an admin
+      operationId: getAdminApprovalCriteria
+      responses:
+        "200":
+          description: Active approval criteria
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApprovalCriteriaResponse"
+        "401":
+          description: An authenticated identity was not available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The authenticated user is not an active admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      tags:
+        - Admin
+      summary: Save and activate a new approval-criteria version
+      operationId: updateApprovalCriteria
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateApprovalCriteriaRequest"
+      responses:
+        "200":
+          description: The new criteria version was saved and activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApprovalCriteriaResponse"
+        "400":
+          description: Invalid approval criteria
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: An authenticated identity was not available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The authenticated user is not an active admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/admin/criteria/history:
+    get:
+      tags:
+        - Admin
+      summary: List approval-criteria versions
+      operationId: listApprovalCriteriaHistory
+      responses:
+        "200":
+          description: Approval-criteria versions in newest-first order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApprovalCriteriaHistoryResponse"
+        "401":
+          description: An authenticated identity was not available
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: The authenticated user is not an active admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /api/v1/approval:
     post:
       tags:
@@ -75,8 +193,8 @@ paths:
       summary: Evaluate a payment-plan proposal
       operationId: evaluateApproval
       description: >
-        Calculates the original delinquency, applies an available three-month
-        regular deferment, evaluates the adjusted delinquency, saves the
+        Calculates the original delinquency, applies an available regular
+        deferment using the active criteria, evaluates the adjusted delinquency, saves the
         decision, and returns approved, denied, or manager_review. A deferment
         removes up to three regular monthly payments from the delinquent balance
         and subtracts 90 days from the delinquency. If both adjusted values reach
@@ -186,8 +304,8 @@ paths:
                     defermentMonths: 0
                     deferredAmount: 0
                     reasons:
-                      - The loan remains between 31 and 89 days delinquent after deferment.
-                      - The plan requires between 13 and 18 payments.
+                      - Loan remains between 31 and 89 days delinquent after deferment.
+                      - Plan requires between 13 and 18 payments.
                     accountComment: >
                       Payment plan decision: MANAGER REVIEW. Member number:
                       123456. Original days delinquent: 45. Adjusted days
@@ -211,8 +329,8 @@ paths:
                     defermentMonths: 0
                     deferredAmount: 0
                     reasons:
-                      - The loan remains 90 or more days delinquent after deferment.
-                      - The plan requires more than 18 payments.
+                      - Loan remains 90 or more days delinquent after deferment.
+                      - Plan requires more than 18 payments.
                     accountComment: >
                       Payment plan decision: DENIED. Member number: 123456.
                       Original days delinquent: 90. Adjusted days delinquent:
@@ -541,9 +659,138 @@ components:
         role:
           type: string
           enum:
-            - associate
+            - collector
             - manager
+            - admin
           description: Application role assigned to the authenticated user.
+
+    ApprovalCriteria:
+      type: object
+      additionalProperties: false
+      required:
+        - versionId
+        - maxRegularDefermentCount
+        - defermentMonths
+        - defermentDaysReduction
+        - automaticApprovalMaxDays
+        - denialDaysThreshold
+        - automaticApprovalMaxPayments
+        - maxPlanPayments
+        - changeReason
+        - changedBy
+        - changedAt
+      properties:
+        versionId:
+          type: integer
+          minimum: 1
+        maxRegularDefermentCount:
+          type: integer
+          minimum: 0
+          maximum: 10
+        defermentMonths:
+          type: integer
+          minimum: 1
+          maximum: 12
+        defermentDaysReduction:
+          type: integer
+          minimum: 1
+          maximum: 365
+        automaticApprovalMaxDays:
+          type: integer
+          minimum: 0
+          maximum: 3650
+        denialDaysThreshold:
+          type: integer
+          minimum: 1
+          maximum: 3650
+        automaticApprovalMaxPayments:
+          type: integer
+          minimum: 1
+          maximum: 60
+        maxPlanPayments:
+          type: integer
+          minimum: 2
+          maximum: 60
+        changeReason:
+          type:
+            - string
+            - "null"
+        changedBy:
+          type:
+            - string
+            - "null"
+          format: email
+        changedAt:
+          type: string
+          description: D1 timestamp for the version change.
+
+    ApprovalCriteriaResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - criteria
+      properties:
+        criteria:
+          $ref: "#/components/schemas/ApprovalCriteria"
+
+    ApprovalCriteriaHistoryResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - versions
+      properties:
+        versions:
+          type: array
+          items:
+            $ref: "#/components/schemas/ApprovalCriteria"
+
+    UpdateApprovalCriteriaRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - maxRegularDefermentCount
+        - defermentMonths
+        - defermentDaysReduction
+        - automaticApprovalMaxDays
+        - denialDaysThreshold
+        - automaticApprovalMaxPayments
+        - maxPlanPayments
+        - changeReason
+      properties:
+        maxRegularDefermentCount:
+          type: integer
+          minimum: 0
+          maximum: 10
+        defermentMonths:
+          type: integer
+          minimum: 1
+          maximum: 12
+        defermentDaysReduction:
+          type: integer
+          minimum: 1
+          maximum: 365
+        automaticApprovalMaxDays:
+          type: integer
+          minimum: 0
+          maximum: 3650
+        denialDaysThreshold:
+          type: integer
+          minimum: 1
+          maximum: 3650
+          description: Must be greater than automaticApprovalMaxDays.
+        automaticApprovalMaxPayments:
+          type: integer
+          minimum: 1
+          maximum: 60
+        maxPlanPayments:
+          type: integer
+          minimum: 2
+          maximum: 60
+          description: Must be greater than automaticApprovalMaxPayments.
+        changeReason:
+          type: string
+          minLength: 1
+          maxLength: 1000
 
     ApprovalRequest:
       type: object
@@ -693,17 +940,16 @@ components:
         regularDefermentAvailable:
           type: boolean
           description: >
-            Whether fewer than two lifetime regular deferments were used
-            when the request was evaluated.
+            Whether the lifetime regular-deferment count was below the active
+            maximum when the request was evaluated.
         regularDefermentApplied:
           type: boolean
-          description: Whether a three-month regular deferment was applied.
+          description: Whether a regular deferment was applied.
         defermentMonths:
           type: integer
-          enum:
-            - 0
-            - 3
-          description: Number of months included in the applied deferment.
+          minimum: 0
+          maximum: 12
+          description: Number of active-criteria months included in the deferment, or zero.
         deferredAmount:
           type: number
           minimum: 0
@@ -793,9 +1039,8 @@ components:
           type: boolean
         defermentMonths:
           type: integer
-          enum:
-            - 0
-            - 3
+          minimum: 0
+          maximum: 12
         deferredAmount:
           type: number
           minimum: 0
@@ -946,7 +1191,8 @@ components:
           type: boolean
         defermentMonths:
           type: integer
-          enum: [0, 3]
+          minimum: 0
+          maximum: 12
         deferredAmount:
           type: number
           minimum: 0

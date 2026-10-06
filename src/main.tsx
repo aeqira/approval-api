@@ -1,13 +1,13 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import App from './App';
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App";
 
-import './styles/global.css';
+import "./styles/global.css";
 
-const root = document.getElementById('root');
+const root = document.getElementById("root");
 
 if (!root) {
-	throw new Error('React root element not found');
+	throw new Error("React root element not found");
 }
 
 createRoot(root).render(
@@ -15,3 +15,9 @@ createRoot(root).render(
 		<App />
 	</StrictMode>,
 );
+
+if ("serviceWorker" in navigator && import.meta.env.PROD) {
+	window.addEventListener("load", () => {
+		void navigator.serviceWorker.register("/sw.js");
+	});
+}

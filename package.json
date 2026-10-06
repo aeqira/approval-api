@@ -6,12 +6,15 @@
 		"build": "tsc --noEmit && vite build",
 		"deploy": "npm run build && wrangler deploy",
 		"dev": "vite",
+		"ios:sync": "npm run build && cap sync ios",
+		"ios:open": "cap open ios",
 		"start": "vite",
 		"preview": "npm run build && vite preview",
 		"test": "vitest",
 		"cf-typegen": "wrangler types"
 	},
 	"devDependencies": {
+		"@capacitor/cli": "^8.5.2",
 		"@cloudflare/vite-plugin": "^1.62.0",
 		"@cloudflare/vitest-plugin": "^1.0.0",
 		"@types/node": "^26.6.3",
@@ -24,6 +27,8 @@
 		"wrangler": "^4.143.0"
 	},
 	"dependencies": {
+		"@capacitor/core": "^8.5.2",
+		"@capacitor/ios": "^8.5.2",
 		"@fluentui/react-icons": "^2.0.343",
 		"react": "^19.3.0",
 		"react-dom": "^19.3.0"

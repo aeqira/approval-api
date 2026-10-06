@@ -2,6 +2,7 @@ import { AddSquare24Regular } from "@fluentui/react-icons/svg/add-square";
 import { ArrowSync24Regular } from "@fluentui/react-icons/svg/arrow-sync";
 import { ClipboardTaskListLtr24Regular } from "@fluentui/react-icons/svg/clipboard-task-list-ltr";
 import { People24Regular } from "@fluentui/react-icons/svg/people";
+import { Settings24Regular } from "@fluentui/react-icons/svg/settings";
 import type { AppHeaderProps } from "../types/approval";
 import { AssociateIdentity } from "./AssociateIdentity";
 
@@ -11,6 +12,7 @@ export function AppHeader({
 	userDisplayName,
 	userBadgePhoto,
 	showManagerQueue,
+	showAdminDashboard,
 	onViewChange,
 }: AppHeaderProps) {
 	return (
@@ -20,10 +22,7 @@ export function AppHeader({
 
 				<span className="app-header-email">
 					{isIdentityLoading ? (
-						<ArrowSync24Regular
-							aria-hidden="true"
-							className="spinning-icon"
-						/>
+						<ArrowSync24Regular aria-hidden="true" className="spinning-icon" />
 					) : (
 						<AssociateIdentity
 							badgePhoto={userBadgePhoto}
@@ -73,6 +72,21 @@ export function AppHeader({
 					>
 						<People24Regular aria-hidden="true" />
 						Manager Queue
+					</button>
+				)}
+
+				{showAdminDashboard && (
+					<button
+						className={
+							activeView === "admin-dashboard"
+								? "app-nav-item app-nav-item--active"
+								: "app-nav-item"
+						}
+						type="button"
+						onClick={() => onViewChange("admin-dashboard")}
+					>
+						<Settings24Regular aria-hidden="true" />
+						Admin Dashboard
 					</button>
 				)}
 			</nav>

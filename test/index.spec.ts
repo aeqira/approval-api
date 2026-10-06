@@ -2,20 +2,14 @@ import { env, SELF } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
 import { API_ROUTES } from "../src/config/api";
 import type {
+	ApprovalCriteriaHistoryResponse,
+	ApprovalCriteriaResponse,
 	ApprovalResponse,
 	ApprovalSubmissionsResponse,
 	ManagerDecisionResponse,
 	ManagerReviewsResponse,
 } from "../src/types/approval";
-
-function getDateDaysAgo(days: number): string {
-	const date = new Date();
-
-	date.setUTCHours(0, 0, 0, 0);
-	date.setUTCDate(date.getUTCDate() - days);
-
-	return date.toISOString().slice(0, 10);
-}
+import { getDateDaysAgo } from "../src/functions/helpers";
 
 const defaultPastDueDate = getDateDaysAgo(20);
 
@@ -49,10 +43,17 @@ async function readApprovalResponse(
 describe("API routing", () => {
 	it.each([
 		[API_ROUTES.health, "POST", "GET"],
+		[API_ROUTES.adminCriteria, "POST", "GET, PATCH"],
+		[API_ROUTES.adminCriteriaHistory, "POST", "GET"],
+		[API_ROUTES.criteria, "POST", "GET"],
 		[API_ROUTES.identity, "POST", "GET"],
 		[API_ROUTES.submissions, "POST", "GET"],
 		[API_ROUTES.managerReviews, "POST", "GET"],
-		[API_ROUTES.managerReview("00000000-0000-4000-8000-000000000000"), "GET", "PATCH"],
+		[
+			API_ROUTES.managerReview("00000000-0000-4000-8000-000000000000"),
+			"GET",
+			"PATCH",
+		],
 		[API_ROUTES.approval, "GET", "POST"],
 	])(
 		"returns a no-store 405 response for %s",
@@ -68,6 +69,47 @@ describe("API routing", () => {
 			expect(await response.json()).toEqual({ error: "Method not allowed" });
 		},
 	);
+});
+
+describe("Approval Criteria API", () => {
+	it("returns the active criteria to an authenticated employee", async () => {
+		const response = await SELF.fetch(
+			new URL(API_ROUTES.criteria, "https://example.com").toString(),
+			{
+				headers: {
+					"CF-Access-Authenticated-User-Email": "associate@aeqira.com",
+				},
+			},
+		);
+
+		expect(response.status).toBe(200);
+		expect(response.headers.get("Cache-Control")).toBe("no-store");
+
+		const result = (await response.json()) as ApprovalCriteriaResponse;
+
+		expect(result.criteria).toEqual(
+			expect.objectContaining({
+				maxRegularDefermentCount: 2,
+				defermentMonths: 3,
+				defermentDaysReduction: 90,
+				automaticApprovalMaxDays: 30,
+				denialDaysThreshold: 90,
+				automaticApprovalMaxPayments: 12,
+				maxPlanPayments: 18,
+			}),
+		);
+	});
+
+	it("rejects an unauthenticated criteria request", async () => {
+		const response = await SELF.fetch(
+			new URL(API_ROUTES.criteria, "https://example.com").toString(),
+		);
+
+		expect(response.status).toBe(401);
+		expect(await response.json()).toEqual({
+			error: "Authentication required",
+		});
+	});
 });
 
 describe("Identity API", () => {
@@ -87,7 +129,7 @@ describe("Identity API", () => {
 			email: "associate@aeqira.com",
 			displayName: "associate@aeqira.com",
 			badgePhoto: null,
-			role: "associate",
+			role: "collector",
 		});
 	});
 
@@ -134,6 +176,204 @@ describe("Identity API", () => {
 			badgePhoto: null,
 			role: "manager",
 		});
+	});
+});
+
+describe("Admin Criteria API", () => {
+	it("prevents a manager from accessing approval criteria", async () => {
+		await env.approval_api_db
+			.prepare(
+				`
+					INSERT OR REPLACE INTO users (
+						email,
+						display_name,
+						role,
+						active
+					)
+					VALUES (?, ?, ?, ?)
+				`,
+			)
+			.bind("manager@aeqira.com", "Test Manager", "manager", 1)
+			.run();
+
+		const response = await SELF.fetch(
+			new URL(API_ROUTES.adminCriteria, "https://example.com").toString(),
+			{
+				headers: {
+					"CF-Access-Authenticated-User-Email": "manager@aeqira.com",
+				},
+			},
+		);
+
+		expect(response.status).toBe(403);
+		expect(await response.json()).toEqual({
+			error: "Admin access required",
+		});
+	});
+
+	it("allows an admin to read and update approval criteria", async () => {
+		await env.approval_api_db
+			.prepare(
+				`
+					INSERT OR REPLACE INTO users (
+						email,
+						display_name,
+						role,
+						active
+					)
+					VALUES (?, ?, ?, ?)
+				`,
+			)
+			.bind("admin@aeqira.com", "Test Admin", "admin", 1)
+			.run();
+
+		const headers = {
+			"CF-Access-Authenticated-User-Email": "admin@aeqira.com",
+		};
+
+		const currentResponse = await SELF.fetch(
+			new URL(API_ROUTES.adminCriteria, "https://example.com").toString(),
+			{ headers },
+		);
+
+		expect(currentResponse.status).toBe(200);
+
+		const currentBody =
+			(await currentResponse.json()) as ApprovalCriteriaResponse;
+
+		expect(currentBody.criteria).toEqual(
+			expect.objectContaining({
+				maxRegularDefermentCount: 2,
+				defermentMonths: 3,
+				defermentDaysReduction: 90,
+				automaticApprovalMaxDays: 30,
+				denialDaysThreshold: 90,
+				automaticApprovalMaxPayments: 12,
+				maxPlanPayments: 18,
+			}),
+		);
+
+		const updateResponse = await SELF.fetch(
+			new URL(API_ROUTES.adminCriteria, "https://example.com").toString(),
+			{
+				method: "PATCH",
+				headers: {
+					...headers,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					maxRegularDefermentCount: 2,
+					defermentMonths: 3,
+					defermentDaysReduction: 90,
+					automaticApprovalMaxDays: 30,
+					denialDaysThreshold: 90,
+					automaticApprovalMaxPayments: 12,
+					maxPlanPayments: 18,
+					changeReason: "Verified default approval criteria.",
+				}),
+			},
+		);
+
+		expect(updateResponse.status).toBe(200);
+
+		const updateBody =
+			(await updateResponse.json()) as ApprovalCriteriaResponse;
+
+		expect(updateBody.criteria).toEqual(
+			expect.objectContaining({
+				changedBy: "admin@aeqira.com",
+				changeReason: "Verified default approval criteria.",
+			}),
+		);
+
+		expect(updateBody.criteria.versionId).toBeGreaterThan(
+			currentBody.criteria.versionId,
+		);
+
+		const historyResponse = await SELF.fetch(
+			new URL(
+				API_ROUTES.adminCriteriaHistory,
+				"https://example.com",
+			).toString(),
+			{ headers },
+		);
+
+		expect(historyResponse.status).toBe(200);
+
+		const historyBody =
+			(await historyResponse.json()) as ApprovalCriteriaHistoryResponse;
+
+		expect(historyBody.versions[0]).toEqual(
+			expect.objectContaining({
+				versionId: updateBody.criteria.versionId,
+				changedBy: "admin@aeqira.com",
+			}),
+		);
+	});
+
+	it("uses newly saved criteria for later approval decisions", async () => {
+		await env.approval_api_db
+			.prepare(
+				`
+					INSERT OR REPLACE INTO users (
+						email,
+						display_name,
+						role,
+						active
+					)
+					VALUES (?, ?, ?, ?)
+				`,
+			)
+			.bind("criteria-admin@aeqira.com", "Criteria Admin", "admin", 1)
+			.run();
+
+		const adminHeaders = {
+			"CF-Access-Authenticated-User-Email": "criteria-admin@aeqira.com",
+			"Content-Type": "application/json",
+		};
+
+		const updateCriteria = (automaticApprovalMaxPayments: number) =>
+			SELF.fetch(
+				new URL(API_ROUTES.adminCriteria, "https://example.com").toString(),
+				{
+					method: "PATCH",
+					headers: adminHeaders,
+					body: JSON.stringify({
+						maxRegularDefermentCount: 2,
+						defermentMonths: 3,
+						defermentDaysReduction: 90,
+						automaticApprovalMaxDays: 30,
+						denialDaysThreshold: 90,
+						automaticApprovalMaxPayments,
+						maxPlanPayments: 18,
+						changeReason: "Verify criteria-driven approval behavior.",
+					}),
+				},
+			);
+
+		const updateResponse = await updateCriteria(13);
+		expect(updateResponse.status).toBe(200);
+
+		try {
+			const approvalResponse = await submitApproval({
+				pastDueBalance: 1300,
+				monthlyPayment: 300,
+				regularDefermentCount: 2,
+				paymentChoice: {
+					type: "minimum_plus_extra",
+					extraAmount: 100,
+				},
+			});
+
+			expect(approvalResponse.status).toBe(200);
+
+			const result = await readApprovalResponse(approvalResponse);
+			expect(result.numberOfPayments).toBe(13);
+			expect(result.status).toBe("approved");
+		} finally {
+			const restoreResponse = await updateCriteria(12);
+			expect(restoreResponse.status).toBe(200);
+		}
 	});
 });
 
@@ -518,7 +758,7 @@ describe("Approval API", () => {
 		expect(result.status).toBe("manager_review");
 		expect(result.regularDefermentAvailable).toBe(false);
 		expect(result.reasons).toContain(
-			"The loan remains between 31 and 89 days delinquent after deferment.",
+			"Loan remains between 31 and 89 days delinquent after deferment.",
 		);
 	});
 
@@ -553,9 +793,7 @@ describe("Approval API", () => {
 		const result = await readApprovalResponse(response);
 
 		expect(result.status).toBe("denied");
-		expect(result.reasons).toContain(
-			"The plan requires more than 18 payments.",
-		);
+		expect(result.reasons).toContain("Plan requires more than 18 payments.");
 	});
 
 	it("denies an affordable payment that does not exceed the minimum", async () => {
@@ -573,7 +811,7 @@ describe("Approval API", () => {
 
 		expect(result.status).toBe("denied");
 		expect(result.reasons).toContain(
-			"The proposed payment must exceed the regular monthly payment.",
+			"Proposed payment must exceed the regular monthly payment.",
 		);
 	});
 });
@@ -594,12 +832,7 @@ describe("Submissions API", () => {
 					VALUES (?, ?, ?, ?)
 				`,
 			)
-			.bind(
-				historyAssociateEmail,
-				"Test Associate",
-				"associate",
-				1,
-			)
+			.bind(historyAssociateEmail, "Test Associate", "collector", 1)
 			.run();
 
 		const approvalResponse = await submitApproval(
@@ -644,10 +877,10 @@ describe("Submissions API", () => {
 		expect(result.pageSize).toBe(10);
 		expect(result.totalPages).toBe(1);
 		expect(result.submissions).toEqual([
-				expect.objectContaining({
-					memberNumber: "HISTORY-TEST-001",
-					associateEmail: historyAssociateEmail,
-					associateDisplayName: "Test Associate",
+			expect.objectContaining({
+				memberNumber: "HISTORY-TEST-001",
+				associateEmail: historyAssociateEmail,
+				associateDisplayName: "Test Associate",
 				currentStatus: "approved",
 				regularDefermentApplied: true,
 				defermentMonths: 3,

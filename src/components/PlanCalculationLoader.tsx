@@ -1,10 +1,6 @@
 import { Calculator24Regular } from "@fluentui/react-icons/svg/calculator";
-import { formatCurrency } from "../functions/helpers";
+import { formatCalculatorDigits, formatCurrency } from "../functions/helpers";
 import type { PlanCalculationLoaderProps } from "../types/approval";
-
-function formatCalculatorDigits(value: number): string {
-	return Math.round(value * 100).toString().padStart(8, "0").slice(-8);
-}
 
 export function PlanCalculationLoader({ values }: PlanCalculationLoaderProps) {
 	const proposedPayment =
